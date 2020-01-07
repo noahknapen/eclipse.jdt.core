@@ -116,6 +116,9 @@ $Terminals
 	AT308DOTDOTDOT
 	BeginCaseExpr
 	RestrictedIdentifierYield
+	JAVADOC_FORMAL_PART_START
+	JAVADOC_FORMAL_PART_SEPARATOR
+	JAVADOC_FORMAL_PART_END
 
 --    BodyMarker
 
@@ -661,9 +664,16 @@ Modifier -> 'synchronized'
 Modifier -> 'transient'
 Modifier -> 'volatile'
 Modifier -> 'strictfp'
+Modifier -> JAVADOC_FORMAL_PART_START JavadocFormalParts JAVADOC_FORMAL_PART_END
+/.$putCase consumeJavadocFormalPartsAsModifier(); $break ./
 Modifier ::= Annotation
 /.$putCase consumeAnnotationAsModifier(); $break ./
 /:$readableName Modifier:/
+
+JavadocFormalParts ::= Expression
+JavadocFormalParts -> JavadocFormalParts JAVADOC_FORMAL_PART_SEPARATOR Expression
+/.$putCase concatExpressionLists(); $break ./
+/:$readableName JavadocFormalParts:/
 
 --18.8 Productions from 8: Class Declarations
 --ClassModifier ::=
