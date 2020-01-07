@@ -1545,8 +1545,11 @@ protected int getNextToken0() throws InvalidInputException {
 									break;
 								if (this.javadocCommentStarts[i] <= this.currentPosition) {
 									// We're inside a javadoc comment
-									this.skipToNextJavadocFormalLine();
-									break;
+									int token = this.skipToNextJavadocFormalLine(true);
+									if (token == TokenNameNotAToken)
+										break;
+									else
+										return token;
 								}
 							}
 						}
@@ -2024,8 +2027,11 @@ protected int getNextToken0() throws InvalidInputException {
 									return token;
 								} else if (isJavadoc) {
 									this.currentPosition = this.startPosition + 3;
-								    skipToNextJavadocFormalLine();
-								    break;
+								    int formalToken = skipToNextJavadocFormalLine(false);
+								    if (formalToken == TokenNameNotAToken)
+								    	break;
+								    else
+								    	return formalToken;
 								}
 							} catch (IndexOutOfBoundsException e) {
 								this.currentPosition--;
@@ -2308,8 +2314,7 @@ protected int scanForTextBlock() throws InvalidInputException {
 		throw new InvalidInputException(UNTERMINATED_TEXT_BLOCK);
 	}
 }
-private boolean scanningJavadocFormalParts;
-private void skipToNextJavadocFormalLine() {
+private int skipToNextJavadocFormalLine(boolean insideFormalPart) {
 	char[] src = this.source;
 
 	// Loop over the lines of the Javadoc comment. When this method is called, we are at the start of a line.
@@ -2329,7 +2334,7 @@ lineLoop:
 				case '*':
 					if (src[this.currentPosition] == '/') {
 						this.currentPosition++;
-						return;
+						break lineLoop;
 					}
 					break;
 				default:
@@ -2338,7 +2343,10 @@ lineLoop:
 		}
 		// Then, check if this is a formal line.
 		if (c == '|') {
-			return;
+			if (insideFormalPart)
+				return TokenNameJAVADOC_FORMAL_PART_SEPARATOR;
+			else
+				return TokenNameJAVADOC_FORMAL_PART_START;
 		}
 		// If not, consume the remainder of the line.
 		for (;;) {
@@ -2347,7 +2355,7 @@ lineLoop:
 				case '*':
 					if (src[this.currentPosition] == '/') {
 						this.currentPosition++;
-						return;
+						break lineLoop;
 					}
 					break;
 				case '\r':
@@ -2356,6 +2364,10 @@ lineLoop:
 			}
 		}
 	}
+	if (insideFormalPart)
+		return TokenNameJAVADOC_FORMAL_PART_END;
+	else
+		return TokenNameNotAToken;
 }
 
 public void getNextUnicodeChar()
