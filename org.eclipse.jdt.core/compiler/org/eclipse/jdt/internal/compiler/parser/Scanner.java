@@ -94,6 +94,13 @@ public class Scanner implements TerminalTokens {
 	public int commentPtr = -1; // no comment test with commentPtr value -1
 	public int lastCommentLinePosition = -1;
 
+	//all javadoc comments
+	private final static int JAVADOC_COMMENT_ARRAYS_SIZE = 30;
+	private int[] javadocCommentStops = new int[JAVADOC_COMMENT_ARRAYS_SIZE];
+	private int[] javadocCommentStarts = new int[JAVADOC_COMMENT_ARRAYS_SIZE];
+	private int javadocCommentPtr = -1;
+	private int endOfLastJavadocComment = 0;
+
 	// task tag support
 	public char[][] foundTaskTags = null;
 	public char[][] foundTaskMessages;
@@ -1532,8 +1539,17 @@ protected int getNextToken0() throws InvalidInputException {
 						if (this.recordLineSeparator) {
 							pushLineSeparator();
 						}
-						if (this.scanningJavadocFormalParts)
-							this.skipToNextJavadocFormalLine();
+						if (this.currentPosition < this.endOfLastJavadocComment) {
+							for (int i = this.javadocCommentPtr; 0 <= i; i--) {
+								if (this.javadocCommentStops[i] <= this.currentPosition)
+									break;
+								if (this.javadocCommentStarts[i] <= this.currentPosition) {
+									// We're inside a javadoc comment
+									this.skipToNextJavadocFormalLine();
+									break;
+								}
+							}
+						}
 					}
 					// inline version of:
 					//isWhiteSpace =
@@ -1975,6 +1991,28 @@ protected int getNextToken0() throws InvalidInputException {
 								}
 								int token = isJavadoc ? TokenNameCOMMENT_JAVADOC : TokenNameCOMMENT_BLOCK;
 								recordComment(token);
+								if (isJavadoc && this.endOfLastJavadocComment < this.currentPosition) {
+									int length = this.javadocCommentStarts.length;
+									this.javadocCommentPtr++;
+									if (javadocCommentPtr == length) {
+										int newLength = length * 2;
+										System.arraycopy(
+												this.javadocCommentStarts,
+												0,
+												this.javadocCommentStarts = new int[newLength],
+												0,
+												length);
+										System.arraycopy(
+												this.javadocCommentStops,
+												0,
+												this.javadocCommentStops = new int[newLength],
+												0,
+												length);
+									}
+									this.javadocCommentStarts[this.javadocCommentPtr] = this.startPosition;
+									this.javadocCommentStops[this.javadocCommentPtr] = this.currentPosition;
+									this.endOfLastJavadocComment = this.currentPosition;
+								}
 								this.commentTagStarts[this.commentPtr] = firstTag;
 								if (this.taskTags != null) checkTaskTag(this.startPosition, this.currentPosition);
 								if (this.tokenizeComments) {
@@ -2291,7 +2329,6 @@ lineLoop:
 				case '*':
 					if (src[this.currentPosition] == '/') {
 						this.currentPosition++;
-						this.scanningJavadocFormalParts = false;
 						return;
 					}
 					break;
@@ -2301,7 +2338,6 @@ lineLoop:
 		}
 		// Then, check if this is a formal line.
 		if (c == '|') {
-			this.scanningJavadocFormalParts = true;
 			return;
 		}
 		// If not, consume the remainder of the line.
@@ -2311,7 +2347,6 @@ lineLoop:
 				case '*':
 					if (src[this.currentPosition] == '/') {
 						this.currentPosition++;
-						this.scanningJavadocFormalParts = false;
 						return;
 					}
 					break;
