@@ -22,6 +22,7 @@ import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.core.compiler.InvalidInputException;
 import org.eclipse.jdt.internal.compiler.CompilationResult;
 import org.eclipse.jdt.internal.compiler.DefaultErrorHandlingPolicies;
+import org.eclipse.jdt.internal.compiler.ast.FormalSpecificationClause;
 import org.eclipse.jdt.internal.compiler.ast.Statement;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
@@ -2124,6 +2125,7 @@ protected int getNextToken0() throws InvalidInputException {
 	}
 	return TokenNameEOF;
 }
+public FormalSpecificationClause.Tag javadocFormalPartTag;
 private int skipToNextJavadocFormalLine(boolean insideFormalPart) {
 	char[] src = this.source;
 	String lastTagSeen = null;
@@ -2165,15 +2167,24 @@ lineLoop:
 		// Then, check if this is a formal line.
 		if (src[this.currentPosition] == '|') {
 			this.currentPosition++;
-			if (insideFormalPart)
-				if (lastTagSeen == null)
+			if (lastTagSeen == null) {
+				if (insideFormalPart)
 					return TokenNameNotAToken;
-				else
-					return TokenNameJAVADOC_FORMAL_PART_SEPARATOR;
-			else
-				if (lastTagSeen != null)
-					return TokenNameJAVADOC_FORMAL_PART_START;
 				// otherwise fall through; this is not a formal part
+			} else
+			newFormalPart: {
+				switch (lastTagSeen) {
+					case "pre": this.javadocFormalPartTag = FormalSpecificationClause.Tag.PRE; break; //$NON-NLS-1$
+					case "post": this.javadocFormalPartTag = FormalSpecificationClause.Tag.POST; break; //$NON-NLS-1$
+					default:
+						break newFormalPart;
+						// fall through; this is not a formal part
+				}
+				if (insideFormalPart)
+					return TokenNameJAVADOC_FORMAL_PART_SEPARATOR;
+				else
+					return TokenNameJAVADOC_FORMAL_PART_START;
+			}
 		}
 		// If not, consume the remainder of the line.
 		for (;;) {
