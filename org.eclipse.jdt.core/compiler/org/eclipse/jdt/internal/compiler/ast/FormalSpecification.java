@@ -1,5 +1,6 @@
 package org.eclipse.jdt.internal.compiler.ast;
 
+import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 
 public class FormalSpecification {
@@ -36,6 +37,15 @@ public class FormalSpecification {
 //		if (this.postconditions != null)
 //			for (Expression e : this.postconditions)
 //				e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
+	}
+
+	public void generateCode(CodeStream codeStream) {
+		if (this.preconditions != null) {
+			for (Expression e : this.preconditions) {
+				e.generateCode(this.method.scope, codeStream, true);
+				codeStream.invokeFsc4jRequires();
+			}
+		}
 	}
 
 }

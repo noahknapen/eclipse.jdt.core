@@ -350,6 +350,8 @@ public abstract class AbstractMethodDeclaration
 					argBinding.recordInitializationStartPC(0);
 				}
 			}
+			if (this.formalSpecification != null)
+				formalSpecification.generateCode(codeStream);
 			if (this.statements != null) {
 				for (Statement stmt : this.statements) {
 					stmt.generateCode(this.scope, codeStream);
