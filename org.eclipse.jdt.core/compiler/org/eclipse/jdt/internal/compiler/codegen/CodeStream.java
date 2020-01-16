@@ -5011,19 +5011,6 @@ public void invokeJavaLangEnumvalueOf(ReferenceBinding binding) {
 			getPopularBinding(ConstantPool.JavaLangEnumConstantPoolName));
 }
 
-private static final char[] fsc4jFsc4jConstantPoolName = "fsc4j/Fsc4j".toCharArray(); //$NON-NLS-1$
-private static final char[] fsc4j_Fsc4j_requires = "requires".toCharArray(); //$NON-NLS-1$
-private static final char[] fsc4j_Fsc4j_requires_Signature = "(Z)V".toCharArray(); //$NON-NLS-1$
-public void invokeFsc4jRequires() {
-	invoke(
-			Opcodes.OPC_invokestatic,
-			1,
-			0,
-			fsc4jFsc4jConstantPoolName,
-			fsc4j_Fsc4j_requires,
-			fsc4j_Fsc4j_requires_Signature);
-}
-
 public void invokeJavaLangEnumValues(TypeBinding enumBinding, ArrayBinding arrayBinding) {
 	char[] signature = "()".toCharArray(); //$NON-NLS-1$
 	signature = CharOperation.concat(signature, arrayBinding.constantPoolName());

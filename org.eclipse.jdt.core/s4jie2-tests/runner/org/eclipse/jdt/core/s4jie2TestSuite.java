@@ -115,7 +115,7 @@ public class s4jie2TestSuite {
 	public static void testCompileAndRun(String filename, boolean expectedSuccess, String outExpected, String errExpected) throws IOException {
 		testCompile(filename, true, "", "");
 
-		String classpath = String.join(System.getProperty("path.separator"), System.getenv("FSC4J_BIN"), binPath+"/"+filename);
+		String classpath = binPath+"/"+filename;
 		Process process = new ProcessBuilder(System.getProperty("java.home") + "/bin/java", "-classpath", classpath, "Main").start();
 		StringBuilder stdoutBuffer = new StringBuilder();
 		Thread stdoutThread = new Thread(() -> readFullyInto(process.getInputStream(), stdoutBuffer));
@@ -155,8 +155,7 @@ public class s4jie2TestSuite {
 		testCompile("Minimal", true, "", "");
 
 		testCompileAndRun("GameCharacter_pre", false, "",
-				"Exception in thread \"main\" fsc4j.PreconditionCheckFailureException: Precondition evaluated to 'false'.\n" + 
-				"	at fsc4j.Fsc4j.requires(Fsc4j.java:7)\n" + 
+				"Exception in thread \"main\" java.lang.AssertionError: Precondition does not hold\n" + 
 				"	at GameCharacter.takeDamage(GameCharacter_pre.java:22)\n" + 
 				"	at Main.main(GameCharacter_pre.java:35)\n");
 		testCompile("GameCharacter_pre_fail", false, "",
