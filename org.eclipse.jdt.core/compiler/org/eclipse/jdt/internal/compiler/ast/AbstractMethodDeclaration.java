@@ -360,6 +360,8 @@ public abstract class AbstractMethodDeclaration
 				throw new AbortMethod(this.scope.referenceCompilationUnit().compilationResult, null);
 			}
 			if ((this.bits & ASTNode.NeedFreeReturn) != 0) {
+				if (this.formalSpecification != null)
+					this.formalSpecification.generatePostconditionCheck(codeStream);
 				codeStream.return_();
 			}
 			// local variable attributes
@@ -573,6 +575,10 @@ public abstract class AbstractMethodDeclaration
 				validateNullAnnotations(this.scope.environment().usesNullTypeAnnotations());
 
 			resolveStatements();
+			if (this.formalSpecification != null && this.formalSpecification.postconditions != null) {
+				this.formalSpecification.postconditionMethodCall.resolve(this.scope);
+				this.formalSpecification.postconditionVariableDeclaration.binding.useFlag = LocalVariableBinding.USED;
+			}
 			// check @Deprecated annotation presence
 			if (this.binding != null
 					&& (this.binding.getAnnotationTagBits() & TagBits.AnnotationDeprecated) == 0

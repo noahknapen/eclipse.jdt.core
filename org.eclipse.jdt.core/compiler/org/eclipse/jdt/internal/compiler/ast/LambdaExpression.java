@@ -139,6 +139,8 @@ public class LambdaExpression extends FunctionalExpression implements IPolyExpre
 	public InferenceContext18 inferenceContext; // when performing tentative resolve keep a back reference to the driving context
 	private Map<Integer/*sourceStart*/, LocalTypeBinding> localTypes; // support look-up of a local type from this lambda copy
 	public boolean argumentsTypeVar = false;
+	
+	public char[] lambdaMethodSelector;
 
 
 	public LambdaExpression(CompilationResult compilationResult, boolean assistNode, boolean requiresGenericSignature) {
@@ -280,10 +282,10 @@ public class LambdaExpression extends FunctionalExpression implements IPolyExpre
 			return this.resolvedType = null;
 
 		this.binding = new MethodBinding(ClassFileConstants.AccPrivate | ClassFileConstants.AccSynthetic | ExtraCompilerModifiers.AccUnresolved,
-							CharOperation.concat(TypeConstants.ANONYMOUS_METHOD, Integer.toString(this.ordinal).toCharArray()), // will be fixed up later.
-							haveDescriptor ? this.descriptor.returnType : TypeBinding.VOID,
-							Binding.NO_PARAMETERS, // for now.
-							haveDescriptor ? this.descriptor.thrownExceptions : Binding.NO_EXCEPTIONS,
+							this.lambdaMethodSelector != null ? this.lambdaMethodSelector : CharOperation.concat(TypeConstants.ANONYMOUS_METHOD, Integer.toString(this.ordinal).toCharArray()), // will be fixed up later.
+							haveDescriptor ? this.descriptor.returnType : TypeBinding.VOID, 
+							Binding.NO_PARAMETERS, // for now. 
+							haveDescriptor ? this.descriptor.thrownExceptions : Binding.NO_EXCEPTIONS, 
 							blockScope.enclosingSourceType());
 		this.binding.typeVariables = Binding.NO_TYPE_VARIABLES;
 
