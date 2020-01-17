@@ -360,6 +360,8 @@ public abstract class AbstractMethodDeclaration
 				throw new AbortMethod(this.scope.referenceCompilationUnit().compilationResult, null);
 			}
 			if ((this.bits & ASTNode.NeedFreeReturn) != 0) {
+				if (this.formalSpecification != null)
+					this.formalSpecification.generatePostconditionCheck(codeStream);
 				codeStream.return_();
 			}
 			// local variable attributes
