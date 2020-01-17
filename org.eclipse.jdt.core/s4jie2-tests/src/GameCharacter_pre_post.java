@@ -4,6 +4,8 @@ class GameCharacter {
 	
 	public int getHealth() { return this.health; }
 	
+	public static int old(int x) { return x - 10; }
+	
 	/**
 	 * Reduces this game character's health by the given amount.
 	 * | this is ignored
@@ -30,7 +32,7 @@ class GameCharacter {
 		this.health += amount;
 	}
 	
-	/** @post | result == (getHealth() * 3 > 0) */
+	/** @post  result == (getHealth() * 3 > 0) */
 	public boolean isHealthy() { return health > 0; }
 	
 }
