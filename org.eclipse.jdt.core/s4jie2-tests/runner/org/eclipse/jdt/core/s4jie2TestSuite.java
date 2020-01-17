@@ -177,7 +177,7 @@ public class s4jie2TestSuite {
 				"Type mismatch: cannot convert from int to boolean\n" + 
 				"----------\n" + 
 				"1 problem (1 error)\n");
-		testCompile("GameCharacter_pre_post", true, "", "");
+		testCompileAndRun("GameCharacter_pre_post", true, "", "");
 		testCompile("GameCharacter_pre_post_syntax_error", false, "",
 				"----------\n" + 
 				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 10)\n" + 
