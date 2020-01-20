@@ -1,7 +1,6 @@
 package org.eclipse.jdt.internal.compiler.ast;
 
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
-import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 
 public class FormalSpecification {
@@ -17,6 +16,7 @@ public class FormalSpecification {
 	public Expression[] postconditions;
 	
 	public LocalDeclaration postconditionVariableDeclaration;
+	public MessageSend postconditionMethodCall;
 
 	public FormalSpecification(AbstractMethodDeclaration method) {
 		this.method = method;
@@ -82,12 +82,20 @@ public class FormalSpecification {
 				}
 				Block postconditionBlock = new Block(0);
 				postconditionBlock.statements = postconditionStatements;
+				postconditionBlock.sourceStart = this.postconditions[0].sourceStart;
+				postconditionBlock.sourceEnd = this.postconditions[this.postconditions.length - 1].sourceEnd;
 				LambdaExpression postconditionLambda = new LambdaExpression(this.method.compilationResult, false);
 				postconditionLambda.setBody(postconditionBlock);
-				postconditionVariableDeclaration = new LocalDeclaration(POSTCONDITION_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
-				postconditionVariableDeclaration.type = new QualifiedTypeReference(javaLangRunnable, javaLangRunnablePositions);
-				postconditionVariableDeclaration.initialization = postconditionLambda;
-				statements[0] = postconditionVariableDeclaration;
+				postconditionLambda.sourceStart = postconditionBlock.sourceStart;
+				postconditionLambda.sourceEnd = postconditionBlock.sourceEnd;
+				this.postconditionVariableDeclaration = new LocalDeclaration(POSTCONDITION_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
+				this.postconditionVariableDeclaration.type = new QualifiedTypeReference(javaLangRunnable, javaLangRunnablePositions);
+				this.postconditionVariableDeclaration.initialization = postconditionLambda;
+				statements[0] = this.postconditionVariableDeclaration;
+				
+				this.postconditionMethodCall = new MessageSend();
+				this.postconditionMethodCall.receiver = new SingleNameReference(POSTCONDITION_VARIABLE_NAME, 0);
+				this.postconditionMethodCall.selector = "run".toCharArray(); //$NON-NLS-1$
 				
 				this.method.statements = statements;
 				if (this.postconditions[0].sourceStart < this.method.bodyStart)
@@ -98,9 +106,7 @@ public class FormalSpecification {
 
 	public void generatePostconditionCheck(CodeStream codeStream) {
 		if (this.postconditions != null) {
-			assert codeStream.locals[0].declaration == this.postconditionVariableDeclaration;
-			codeStream.load(codeStream.locals[0]);
-			codeStream.invoke(Opcodes.OPC_invokevirtual, codeStream.locals[0].type.getMethods("run".toCharArray())[0], null); //$NON-NLS-1$
+			this.postconditionMethodCall.generateCode(this.method.scope, codeStream);
 		}
 		
 	}
