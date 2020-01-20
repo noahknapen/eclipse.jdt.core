@@ -575,6 +575,10 @@ public abstract class AbstractMethodDeclaration
 				validateNullAnnotations(this.scope.environment().usesNullTypeAnnotations());
 
 			resolveStatements();
+			if (this.formalSpecification != null && this.formalSpecification.postconditions != null) {
+				this.formalSpecification.postconditionMethodCall.resolve(this.scope);
+				this.formalSpecification.postconditionVariableDeclaration.binding.useFlag = LocalVariableBinding.USED;
+			}
 			// check @Deprecated annotation presence
 			if (this.binding != null
 					&& (this.binding.getAnnotationTagBits() & TagBits.AnnotationDeprecated) == 0

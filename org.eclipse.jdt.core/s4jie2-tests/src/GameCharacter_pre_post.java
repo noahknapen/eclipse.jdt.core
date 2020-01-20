@@ -36,3 +36,18 @@ class GameCharacter {
 	public boolean isHealthy() { return health > 0; }
 	
 }
+
+class Main {
+	public static void main(String[] args) {
+		GameCharacter c = new GameCharacter();
+		// Success case
+		c.heal(10);
+		
+		try {
+			c.takeDamage(5);
+			System.err.println("No exception thrown! :-(");
+		} catch (AssertionError e) {
+			e.printStackTrace();
+		}
+	}
+}
