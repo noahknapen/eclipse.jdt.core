@@ -120,6 +120,7 @@ $Terminals
 	JAVADOC_FORMAL_PART_START
 	JAVADOC_FORMAL_PART_SEPARATOR
 	JAVADOC_FORMAL_PART_END
+	old
 
 --    BodyMarker
 
@@ -1674,6 +1675,9 @@ PrimaryNoNewArray ::= PushLPAREN Expression_NotName PushRPAREN
 
 PrimaryNoNewArray ::= PushLPAREN Name PushRPAREN 
 /.$putCase consumePrimaryNoNewArrayWithName(); $break ./
+
+PrimaryNoNewArray -> old LPAREN Expression RPAREN
+/.$putCase consumeOldExpression(); $break ./
 
 PrimaryNoNewArray -> ClassInstanceCreationExpression
 PrimaryNoNewArray -> FieldAccess
