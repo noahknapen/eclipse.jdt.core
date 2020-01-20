@@ -1,5 +1,6 @@
 package org.eclipse.jdt.internal.compiler.ast;
 
+import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 
@@ -10,6 +11,7 @@ public class FormalSpecification {
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
 	private static final char[][] javaLangRunnable = {"java".toCharArray(), "lang".toCharArray(), "Runnable".toCharArray()}; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 	private static final long[] javaLangRunnablePositions = {0, 0, 0};
+	private static final char[] POSTCONDITION_METHOD_NAME_SUFFIX = "$post".toCharArray(); //$NON-NLS-1$
 
 	public final AbstractMethodDeclaration method;
 	public Expression[] preconditions;
@@ -85,6 +87,7 @@ public class FormalSpecification {
 				postconditionBlock.sourceStart = this.postconditions[0].sourceStart;
 				postconditionBlock.sourceEnd = this.postconditions[this.postconditions.length - 1].sourceEnd;
 				LambdaExpression postconditionLambda = new LambdaExpression(this.method.compilationResult, false);
+				postconditionLambda.lambdaMethodSelector = CharOperation.concat(this.method.selector, POSTCONDITION_METHOD_NAME_SUFFIX);
 				postconditionLambda.setBody(postconditionBlock);
 				postconditionLambda.sourceStart = postconditionBlock.sourceStart;
 				postconditionLambda.sourceEnd = postconditionBlock.sourceEnd;
