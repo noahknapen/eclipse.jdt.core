@@ -119,6 +119,9 @@ public class MethodDeclaration extends AbstractMethodDeclaration {
 				this.bits &= ~ASTNode.CanBeStatic;
 			}
 			// propagate to statements
+			if (this.formalSpecification != null)
+				flowInfo = this.formalSpecification.analyseCode(this.scope, methodContext, flowInfo);
+			
 			if (this.statements != null) {
 				boolean enableSyntacticNullAnalysisForFields = this.scope.compilerOptions().enableSyntacticNullAnalysisForFields;
 				int complaintLevel = (flowInfo.reachMode() & FlowInfo.UNREACHABLE) == 0 ? Statement.NOT_COMPLAINED : Statement.COMPLAINED_FAKE_REACHABLE;
