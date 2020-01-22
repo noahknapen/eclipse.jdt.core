@@ -119,6 +119,9 @@ public class MethodDeclaration extends AbstractMethodDeclaration {
 				this.bits &= ~ASTNode.CanBeStatic;
 			}
 			// propagate to statements
+			if (this.formalSpecification != null)
+				flowInfo = this.formalSpecification.analyseCode(this.scope, methodContext, flowInfo);
+			
 			if (this.statements != null) {
 				CompilerOptions compilerOptions = this.scope.compilerOptions();
 				boolean enableSyntacticNullAnalysisForFields = compilerOptions.enableSyntacticNullAnalysisForFields;
