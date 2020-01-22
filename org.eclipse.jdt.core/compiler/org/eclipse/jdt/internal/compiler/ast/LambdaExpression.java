@@ -137,6 +137,7 @@ public class LambdaExpression extends FunctionalExpression implements IPolyExpre
 	public InferenceContext18 inferenceContext; // when performing tentative resolve keep a back reference to the driving context
 	private Map<Integer/*sourceStart*/, LocalTypeBinding> localTypes; // support look-up of a local type from this lambda copy
 	public boolean argumentsTypeVar = false;
+	public boolean lateBindReceiver;
 	
 	public char[] lambdaMethodSelector;
 
@@ -192,19 +193,31 @@ public class LambdaExpression extends FunctionalExpression implements IPolyExpre
 
 	@Override
 	public void generateCode(BlockScope currentScope, CodeStream codeStream, boolean valueRequired) {
-		if (this.shouldCaptureInstance) {
+		if (this.shouldCaptureInstance && !this.lateBindReceiver) {
 			this.binding.modifiers &= ~ClassFileConstants.AccStatic;
 		} else {
 			this.binding.modifiers |= ClassFileConstants.AccStatic;
 		}
 		SourceTypeBinding sourceType = currentScope.enclosingSourceType();
+		if (this.lateBindReceiver && this.shouldCaptureInstance) {
+			if (this.binding.parameters == null)
+				this.binding.parameters = new TypeBinding[1];
+			else {
+				int length = this.binding.parameters.length;
+				System.arraycopy(this.binding.parameters, 0, this.binding.parameters = new TypeBinding[length + 1], 1, length);
+			}
+			this.binding.parameters[0] = sourceType;
+		}
 		boolean firstSpill = !(this.binding instanceof SyntheticMethodBinding);
 		this.binding = sourceType.addSyntheticMethod(this);
 		int pc = codeStream.position;
 		StringBuffer signature = new StringBuffer();
 		signature.append('(');
 		if (this.shouldCaptureInstance) {
-			codeStream.aload_0();
+			if (this.lateBindReceiver)
+				codeStream.aconst_null();
+			else
+				codeStream.aload_0();
 			signature.append(sourceType.signature());
 		}
 		for (int i = 0, length = this.outerLocalVariables == null ? 0 : this.outerLocalVariables.length; i < length; i++) {
@@ -1268,7 +1281,7 @@ public class LambdaExpression extends FunctionalExpression implements IPolyExpre
 		CodeStream codeStream = classFile.codeStream;
 		codeStream.reset(this, classFile);
 		// initialize local positions
-		this.scope.computeLocalVariablePositions(this.outerLocalVariablesSlotSize + (this.binding.isStatic() ? 0 : 1), codeStream);
+		this.scope.computeLocalVariablePositions(this.outerLocalVariablesSlotSize + (this.shouldCaptureInstance ? 1 : 0), codeStream);
 		if (this.outerLocalVariables != null) {
 			for (int i = 0, max = this.outerLocalVariables.length; i < max; i++) {
 				LocalVariableBinding argBinding;
@@ -1284,6 +1297,11 @@ public class LambdaExpression extends FunctionalExpression implements IPolyExpre
 				codeStream.addVisibleLocalVariable(argBinding = this.arguments[i].binding);
 				argBinding.recordInitializationStartPC(0);
 			}
+		}
+		if (this.shouldCaptureInstance && this.lateBindReceiver) {
+			codeStream.load(this.arguments[0].binding);
+			codeStream.checkcast(classFile.referenceBinding);
+			codeStream.astore_0();
 		}
 		if (this.body instanceof Block) {
 			this.body.generateCode(this.scope, codeStream);
