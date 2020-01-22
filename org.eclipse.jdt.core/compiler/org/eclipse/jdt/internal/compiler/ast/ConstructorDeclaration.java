@@ -171,6 +171,9 @@ public void analyseCode(ClassScope classScope, InitializationFlowContext initial
 		flowInfo.setReachMode(nonStaticFieldInfoReachMode);
 
 		// propagate to statements
+		if (this.formalSpecification != null)
+			flowInfo = this.formalSpecification.analyseCode(this.scope, constructorContext, flowInfo);
+		
 		if (this.statements != null) {
 			CompilerOptions compilerOptions = this.scope.compilerOptions();
 			boolean enableSyntacticNullAnalysisForFields = compilerOptions.enableSyntacticNullAnalysisForFields;
@@ -449,6 +452,9 @@ private void internalGenerateCode(ClassScope classScope, ClassFile classFile) {
 			}
 		}
 		// generate statements
+		if (this.formalSpecification != null)
+			this.formalSpecification.generateCode(this.scope, codeStream);
+
 		if (this.statements != null) {
 			for (int i = 0, max = this.statements.length; i < max; i++) {
 				this.statements[i].generateCode(this.scope, codeStream);
