@@ -150,6 +150,9 @@ public void analyseCode(ClassScope classScope, InitializationFlowContext initial
 		// nullity and mark as assigned
 		analyseArguments(classScope.environment(), flowInfo, this.arguments, this.binding);
 
+		if (this.formalSpecification != null)
+			flowInfo = this.formalSpecification.analyseCode(this.scope, constructorContext, flowInfo);
+		
 		// propagate to constructor call
 		if (this.constructorCall != null) {
 			// if calling 'this(...)', then flag all non-static fields as definitely
@@ -170,9 +173,6 @@ public void analyseCode(ClassScope classScope, InitializationFlowContext initial
 		flowInfo.setReachMode(nonStaticFieldInfoReachMode);
 
 		// propagate to statements
-		if (this.formalSpecification != null)
-			flowInfo = this.formalSpecification.analyseCode(this.scope, constructorContext, flowInfo);
-		
 		if (this.statements != null) {
 			boolean enableSyntacticNullAnalysisForFields = this.scope.compilerOptions().enableSyntacticNullAnalysisForFields;
 			int complaintLevel = (nonStaticFieldInfoReachMode & FlowInfo.UNREACHABLE) == 0 ? Statement.NOT_COMPLAINED : Statement.COMPLAINED_FAKE_REACHABLE;
@@ -423,6 +423,10 @@ private void internalGenerateCode(ClassScope classScope, ClassFile classFile) {
 			generateSyntheticFieldInitializationsIfNecessary(this.scope, codeStream, declaringClass);
 			codeStream.recordPositionsFrom(0, this.bodyStart > 0 ? this.bodyStart : this.sourceStart);
 		}
+		
+		if (this.formalSpecification != null)
+			this.formalSpecification.generateCode(this.scope, codeStream);
+
 		// generate constructor call
 		if (this.constructorCall != null) {
 			this.constructorCall.generateCode(this.scope, codeStream);
@@ -443,9 +447,6 @@ private void internalGenerateCode(ClassScope classScope, ClassFile classFile) {
 			}
 		}
 		// generate statements
-		if (this.formalSpecification != null)
-			this.formalSpecification.generateCode(this.scope, codeStream);
-
 		if (this.statements != null) {
 			for (int i = 0, max = this.statements.length; i < max; i++) {
 				this.statements[i].generateCode(this.scope, codeStream);
