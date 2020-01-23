@@ -7,8 +7,11 @@ import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
 import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
+import org.eclipse.jdt.internal.compiler.flow.ExceptionHandlingFlowContext;
+import org.eclipse.jdt.internal.compiler.flow.FlowInfo;
 import org.eclipse.jdt.internal.compiler.lookup.BlockScope;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
+import org.eclipse.jdt.internal.compiler.lookup.MethodScope;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeIds;
 
@@ -31,6 +34,7 @@ public class FormalSpecification {
 		return new QualifiedTypeReference(sources, poss);
 	}
 	
+	private static final QualifiedTypeReference javaLangObject = getTypeReference("java.lang.Object"); //$NON-NLS-1$
 	private static final QualifiedTypeReference javaLangRunnable = getTypeReference("java.lang.Runnable"); //$NON-NLS-1$
 	private static final QualifiedTypeReference javaUtilFunctionConsumer = getTypeReference("java.util.function.Consumer"); //$NON-NLS-1$
 	private static final HashMap<Integer, QualifiedTypeReference> boxedTypeReferences = new HashMap<>();
@@ -57,12 +61,17 @@ public class FormalSpecification {
 		return r;
 	}
 	
+	private static QualifiedTypeReference getJavaUtilConsumerOf(TypeReference typeArgument) {
+		TypeReference[][] typeArguments = new TypeReference[][] { null, null, null, {typeArgument}};
+		return new ParameterizedQualifiedTypeReference(javaUtilFunctionConsumer.tokens, typeArguments, 0, javaUtilFunctionConsumer.sourcePositions);
+	}
+	
 	private static QualifiedTypeReference getPostconditionLambdaType(TypeBinding returnTypeBinding, TypeReference returnType) {
+		if (returnType == null) // constructor
+			return getJavaUtilConsumerOf(javaLangObject);
 		switch (returnTypeBinding.id) {
 			case TypeIds.T_void: return javaLangRunnable;
-			default:
-				TypeReference[][] typeArguments = new TypeReference[][] { null, null, null, {getBoxedType(returnTypeBinding, returnType)}};
-				return new ParameterizedQualifiedTypeReference(javaUtilFunctionConsumer.tokens, typeArguments, 0, javaUtilFunctionConsumer.sourcePositions);
+			default: return getJavaUtilConsumerOf(getBoxedType(returnTypeBinding, returnType));
 		}
 	}
 
@@ -74,6 +83,7 @@ public class FormalSpecification {
 	public Block block;
 	public LocalDeclaration postconditionVariableDeclaration;
 	public MessageSend postconditionMethodCall;
+	public ArrayList<Statement> statementsForMethodBody;
 
 	public FormalSpecification(AbstractMethodDeclaration method) {
 		this.method = method;
@@ -107,7 +117,7 @@ public class FormalSpecification {
 		} else {
 			ArrayList<Statement> statementsForBlock = new ArrayList<>();
 			int blockDeclarationsCount = 0;
-			ArrayList<Statement> statementsForMethodBody = new ArrayList<>();
+			this.statementsForMethodBody = new ArrayList<>();
 			if (this.preconditions != null) {
 				// Insert assert statements into method body.
 				// FIXME(fsc4j): If this is a constructor without an explicit super()/this(), a super()/this() will incorrectly be inserted *before* the asserts.
@@ -163,21 +173,23 @@ public class FormalSpecification {
 				postconditionBlock.sourceStart = this.postconditions[0].sourceStart;
 				postconditionBlock.sourceEnd = this.postconditions[this.postconditions.length - 1].sourceEnd;
 				LambdaExpression postconditionLambda = new LambdaExpression(this.method.compilationResult, false);
+				if (this.method instanceof ConstructorDeclaration)
+					postconditionLambda.lateBindReceiver = true;
 				postconditionLambda.lambdaMethodSelector = CharOperation.concat(this.method.selector, POSTCONDITION_METHOD_NAME_SUFFIX);
-				if (this.method.binding.returnType.id != TypeIds.T_void)
+				if (this.method.binding.returnType.id != TypeIds.T_void || this.method instanceof ConstructorDeclaration)
 					postconditionLambda.setArguments(new Argument[] {new Argument(LAMBDA_PARAMETER_NAME, (this.method.bodyStart << 32) + this.method.bodyStart, null, 0, true)});
 				postconditionLambda.setBody(postconditionBlock);
 				postconditionLambda.sourceStart = postconditionBlock.sourceStart;
 				postconditionLambda.sourceEnd = postconditionBlock.sourceEnd;
 				this.postconditionVariableDeclaration = new LocalDeclaration(POSTCONDITION_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
 				this.postconditionVariableDeclaration.type = getPostconditionLambdaType(this.method.binding.returnType, this.method instanceof MethodDeclaration ? ((MethodDeclaration)this.method).returnType : null);
-				statementsForMethodBody.add(this.postconditionVariableDeclaration);
+				this.statementsForMethodBody.add(this.postconditionVariableDeclaration);
 				this.method.explicitDeclarations++;
 				statementsForBlock.add(new Assignment(new SingleNameReference(this.postconditionVariableDeclaration.name, (this.method.bodyStart << 32) + this.method.bodyStart), postconditionLambda, this.method.bodyStart));
 				
 				this.postconditionMethodCall = new MessageSend();
 				this.postconditionMethodCall.receiver = new SingleNameReference(POSTCONDITION_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
-				if (this.method.binding.returnType.id == TypeIds.T_void)
+				if (this.method.binding.returnType.id == TypeIds.T_void && !(this.method instanceof ConstructorDeclaration))
 					this.postconditionMethodCall.selector = "run".toCharArray(); //$NON-NLS-1$
 				else {
 					this.postconditionMethodCall.selector = "accept".toCharArray(); //$NON-NLS-1$
@@ -187,18 +199,10 @@ public class FormalSpecification {
 			this.block = new Block(blockDeclarationsCount);
 			this.block.statements = new Statement[statementsForBlock.size()];
 			statementsForBlock.toArray(this.block.statements);
-			statementsForMethodBody.add(this.block);
+			this.statementsForMethodBody.add(this.block);
 			
-			Statement[] statements = this.method.statements;
-			if (statements == null)
-				statements = new Statement[statementsForMethodBody.size()];
-			else {
-				int length = statements.length;
-				System.arraycopy(statements, 0, statements = new Statement[statementsForMethodBody.size() + length], statementsForMethodBody.size(), length);
-			}
-			for (int i = 0; i < statementsForMethodBody.size(); i++)
-				statements[i] = statementsForMethodBody.get(i);
-			this.method.statements = statements;
+			for (Statement s : this.statementsForMethodBody)
+				s.resolve(this.method.scope);
 			
 			if (this.preconditions != null)
 				this.method.bodyStart = this.preconditions[0].sourceStart;
@@ -210,9 +214,11 @@ public class FormalSpecification {
 	public void generatePostconditionCheck(CodeStream codeStream) {
 		if (this.postconditions != null) {
 			int returnType = this.method.binding.returnType.id;
-			if (returnType == TypeIds.T_void)
+			if (returnType == TypeIds.T_void) {
 				codeStream.load(this.postconditionVariableDeclaration.binding);
-			else {
+				if (this.method instanceof ConstructorDeclaration)
+					codeStream.aload_0();
+			} else {
 				if (returnType == TypeIds.T_long || returnType == TypeIds.T_double) {
 					codeStream.dup2();
 					codeStream.load(this.postconditionVariableDeclaration.binding);
@@ -231,6 +237,17 @@ public class FormalSpecification {
 			codeStream.invoke(Opcodes.OPC_invokeinterface, method, constantPoolDeclaringClass);
 		}
 		
+	}
+
+	public FlowInfo analyseCode(MethodScope scope, ExceptionHandlingFlowContext methodContext, FlowInfo flowInfo) {
+		for (Statement s : this.statementsForMethodBody)
+			flowInfo = s.analyseCode(scope, methodContext, flowInfo);
+		return flowInfo;
+	}
+
+	public void generateCode(MethodScope scope, CodeStream codeStream) {
+		for (Statement s : this.statementsForMethodBody)
+			s.generateCode(scope, codeStream);
 	}
 
 }

@@ -340,6 +340,8 @@ public abstract class AbstractMethodDeclaration
 					argBinding.recordInitializationStartPC(0);
 				}
 			}
+			if (this.formalSpecification != null)
+				this.formalSpecification.generateCode(this.scope, codeStream);
 			if (this.statements != null) {
 				for (int i = 0, max = this.statements.length; i < max; i++)
 					this.statements[i].generateCode(this.scope, codeStream);
@@ -547,14 +549,14 @@ public abstract class AbstractMethodDeclaration
 			bindArguments();
 			resolveReceiver();
 			bindThrownExceptions();
-			if (this.formalSpecification != null)
-				this.formalSpecification.resolve();
 			resolveAnnotations(this.scope, this.annotations, this.binding, this.isConstructor());
 			
 			long sourceLevel = this.scope.compilerOptions().sourceLevel;
 			if (sourceLevel < ClassFileConstants.JDK1_8) // otherwise already checked via Argument.createBinding
 				validateNullAnnotations(this.scope.environment().usesNullTypeAnnotations());
 
+			if (this.formalSpecification != null)
+				this.formalSpecification.resolve();
 			resolveStatements();
 			if (this.formalSpecification != null && this.formalSpecification.postconditions != null) {
 				this.formalSpecification.postconditionMethodCall.resolve(this.scope);

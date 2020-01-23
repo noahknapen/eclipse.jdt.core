@@ -150,6 +150,9 @@ public void analyseCode(ClassScope classScope, InitializationFlowContext initial
 		// nullity and mark as assigned
 		analyseArguments(classScope.environment(), flowInfo, this.arguments, this.binding);
 
+		if (this.formalSpecification != null)
+			flowInfo = this.formalSpecification.analyseCode(this.scope, constructorContext, flowInfo);
+		
 		// propagate to constructor call
 		if (this.constructorCall != null) {
 			// if calling 'this(...)', then flag all non-static fields as definitely
@@ -420,6 +423,10 @@ private void internalGenerateCode(ClassScope classScope, ClassFile classFile) {
 			generateSyntheticFieldInitializationsIfNecessary(this.scope, codeStream, declaringClass);
 			codeStream.recordPositionsFrom(0, this.bodyStart > 0 ? this.bodyStart : this.sourceStart);
 		}
+		
+		if (this.formalSpecification != null)
+			this.formalSpecification.generateCode(this.scope, codeStream);
+
 		// generate constructor call
 		if (this.constructorCall != null) {
 			this.constructorCall.generateCode(this.scope, codeStream);
