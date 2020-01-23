@@ -138,6 +138,7 @@ public class LambdaExpression extends FunctionalExpression implements IPolyExpre
 	private Map<Integer/*sourceStart*/, LocalTypeBinding> localTypes; // support look-up of a local type from this lambda copy
 	public boolean argumentsTypeVar = false;
 	public boolean lateBindReceiver;
+	public boolean allowReferencesToNonEffectivelyFinalOuterLocals;
 	
 	public char[] lambdaMethodSelector;
 
