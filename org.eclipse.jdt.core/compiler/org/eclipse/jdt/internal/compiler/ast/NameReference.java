@@ -109,6 +109,8 @@ public abstract char[][] getName();
 public void checkEffectiveFinality(VariableBinding localBinding, Scope scope) {
 	if ((this.bits & ASTNode.IsCapturedOuterLocal) != 0) {
 		if (!localBinding.isFinal() && !localBinding.isEffectivelyFinal()) {
+			if (allowsReferencesToNonEffectivelyFinalOuterLocals(scope))
+				return;
 			scope.problemReporter().cannotReferToNonEffectivelyFinalOuterLocal(localBinding, this);
 			throw new AbortMethod(scope.referenceCompilationUnit().compilationResult, null);
 		}
@@ -118,5 +120,19 @@ public void checkEffectiveFinality(VariableBinding localBinding, Scope scope) {
 @Override
 public boolean isType() {
 	return (this.bits & Binding.TYPE) != 0;
+}
+private static boolean allowsReferencesToNonEffectivelyFinalOuterLocals(Scope scope) {
+	if (scope instanceof MethodScope) {
+		MethodScope methodScope = (MethodScope)scope;
+		if (methodScope.referenceContext instanceof LambdaExpression) {
+			LambdaExpression lambdaExpression = (LambdaExpression)methodScope.referenceContext;
+			if (lambdaExpression.allowReferencesToNonEffectivelyFinalOuterLocals)
+				return true;
+		}
+		return allowsReferencesToNonEffectivelyFinalOuterLocals(scope.parent);
+	}
+	if (scope instanceof BlockScope)
+		return allowsReferencesToNonEffectivelyFinalOuterLocals(scope.parent);
+	return false;
 }
 }
