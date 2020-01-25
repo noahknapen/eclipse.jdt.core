@@ -4084,6 +4084,15 @@ public void invalidConstructor(Statement statement, MethodBinding targetConstruc
 		sourceStart,
 		sourceEnd);
 }
+public void notVisibleConstructor(Statement statement, MethodBinding targetConstructor) {
+	MethodBinding shownConstructor = targetConstructor;
+	this.handle(
+			IProblem.NotVisibleConstructor,
+			new String[] {new String(targetConstructor.declaringClass.readableName()), typesAsString(shownConstructor, false)},
+			new String[] {new String(targetConstructor.declaringClass.shortReadableName()), typesAsString(shownConstructor, true)},
+			statement.sourceStart,
+			statement.sourceEnd);
+}
 public void invalidContinue(ASTNode location) {
 	this.handle(
 		IProblem.InvalidContinue,
