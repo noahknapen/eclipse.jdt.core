@@ -11,6 +11,7 @@ import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
 import org.eclipse.jdt.internal.compiler.flow.ExceptionHandlingFlowContext;
 import org.eclipse.jdt.internal.compiler.flow.FlowInfo;
 import org.eclipse.jdt.internal.compiler.lookup.BlockScope;
+import org.eclipse.jdt.internal.compiler.lookup.ClassScope;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodScope;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
@@ -217,6 +218,214 @@ public class FormalSpecification {
 			
 			for (Statement s : this.statementsForMethodBody)
 				s.resolve(this.method.scope);
+			
+			ASTVisitor checker = new ASTVisitor() {
+				
+				private boolean isVisible(MethodBinding binding) {
+					if (!isVisible(binding.declaringClass))
+						return false;
+					if (binding.isPublic())
+						return true;
+					if (FormalSpecification.this.method.binding.isPublic())
+						return false;
+					if (FormalSpecification.this.method.binding.isPrivate())
+						return true;
+					if (binding.isPrivate())
+						return false;
+					// Here, both elements are either protected or package-accessible
+					// TODO(fsc4j): Deal with 'protected' case
+					// Here, we assume both elements are package-accessible
+					return binding.declaringClass.fPackage == FormalSpecification.this.method.binding.declaringClass.fPackage;
+				}
+
+				@Override
+				public boolean visit(AllocationExpression allocationExpression, BlockScope scope) {
+					MethodBinding binding = allocationExpression.binding;
+					if (!isVisible(binding))
+						FormalSpecification.this.method.scope.problemReporter().notVisibleConstructor(allocationExpression, binding);
+					return true;
+				}
+
+				@Override
+				public boolean visit(ArrayAllocationExpression arrayAllocationExpression, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(arrayAllocationExpression, scope);
+				}
+
+				@Override
+				public boolean visit(ArrayQualifiedTypeReference arrayQualifiedTypeReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(arrayQualifiedTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(ArrayQualifiedTypeReference arrayQualifiedTypeReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(arrayQualifiedTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(ArrayTypeReference arrayTypeReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(arrayTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(ArrayTypeReference arrayTypeReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(arrayTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(Assignment assignment, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(assignment, scope);
+				}
+
+				@Override
+				public boolean visit(ClassLiteralAccess classLiteral, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(classLiteral, scope);
+				}
+
+				@Override
+				public boolean visit(CompoundAssignment compoundAssignment, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(compoundAssignment, scope);
+				}
+
+				@Override
+				public boolean visit(FieldReference fieldReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(fieldReference, scope);
+				}
+
+				@Override
+				public boolean visit(FieldReference fieldReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(fieldReference, scope);
+				}
+
+				@Override
+				public boolean visit(MessageSend messageSend, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(messageSend, scope);
+				}
+
+				@Override
+				public boolean visit(ParameterizedQualifiedTypeReference parameterizedQualifiedTypeReference,
+						BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(parameterizedQualifiedTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(ParameterizedQualifiedTypeReference parameterizedQualifiedTypeReference,
+						ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(parameterizedQualifiedTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(ParameterizedSingleTypeReference parameterizedSingleTypeReference,
+						BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(parameterizedSingleTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(ParameterizedSingleTypeReference parameterizedSingleTypeReference,
+						ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(parameterizedSingleTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(QualifiedAllocationExpression qualifiedAllocationExpression, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(qualifiedAllocationExpression, scope);
+				}
+
+				@Override
+				public boolean visit(QualifiedNameReference qualifiedNameReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(qualifiedNameReference, scope);
+				}
+
+				@Override
+				public boolean visit(QualifiedNameReference qualifiedNameReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(qualifiedNameReference, scope);
+				}
+
+				@Override
+				public boolean visit(QualifiedSuperReference qualifiedSuperReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(qualifiedSuperReference, scope);
+				}
+
+				@Override
+				public boolean visit(QualifiedSuperReference qualifiedSuperReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(qualifiedSuperReference, scope);
+				}
+
+				@Override
+				public boolean visit(QualifiedTypeReference qualifiedTypeReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(qualifiedTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(QualifiedTypeReference qualifiedTypeReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(qualifiedTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(SingleNameReference singleNameReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(singleNameReference, scope);
+				}
+
+				@Override
+				public boolean visit(SingleNameReference singleNameReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(singleNameReference, scope);
+				}
+
+				@Override
+				public boolean visit(SingleTypeReference singleTypeReference, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(singleTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(SingleTypeReference singleTypeReference, ClassScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(singleTypeReference, scope);
+				}
+
+				@Override
+				public boolean visit(ThrowStatement throwStatement, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(throwStatement, scope);
+				}
+
+				@Override
+				public boolean visit(TryStatement tryStatement, BlockScope scope) {
+					// TODO Auto-generated method stub
+					return super.visit(tryStatement, scope);
+				}
+				
+			};
+			
+			if (this.preconditions != null)
+				for (Expression e : this.preconditions)
+					e.traverse(checker, this.method.scope);
+			if (this.postconditions != null)
+				for (Expression e : this.postconditions)
+					e.traverse(checker, this.method.scope);
 			
 			if (this.preconditions != null)
 				this.method.bodyStart = this.preconditions[0].sourceStart;
