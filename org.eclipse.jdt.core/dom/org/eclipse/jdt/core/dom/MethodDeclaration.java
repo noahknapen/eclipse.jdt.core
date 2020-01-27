@@ -74,6 +74,12 @@ public class MethodDeclaration extends BodyDeclaration {
 		internalJavadocPropertyFactory(MethodDeclaration.class);
 
 	/**
+	 * @since 3.24
+	 */
+	public static final ChildListPropertyDescriptor FORMAL_SPECIFICATION_CLAUSES_PROPERTY =
+			new ChildListPropertyDescriptor(MethodDeclaration.class, "formalSpecificationClauses", Expression.class, CYCLE_RISK); //$NON-NLS-1$
+
+	/**
 	 * The "modifiers" structural property of this node type (type: {@link Integer}) (JLS2 API only).
 	 * @since 3.0
 	 * @deprecated In the JLS3 API, this property is replaced by {@link #MODIFIERS2_PROPERTY}.
@@ -250,9 +256,10 @@ public class MethodDeclaration extends BodyDeclaration {
 		addProperty(BODY_PROPERTY, propertyList);
 		PROPERTY_DESCRIPTORS_3_0 = reapPropertyList(propertyList);
 
-		propertyList = new ArrayList(13);
+		propertyList = new ArrayList(14);
 		createPropertyList(MethodDeclaration.class, propertyList);
 		addProperty(JAVADOC_PROPERTY, propertyList);
+		addProperty(FORMAL_SPECIFICATION_CLAUSES_PROPERTY, propertyList);
 		addProperty(MODIFIERS2_PROPERTY, propertyList);
 		addProperty(CONSTRUCTOR_PROPERTY, propertyList);
 		addProperty(TYPE_PARAMETERS_PROPERTY, propertyList);
@@ -320,6 +327,8 @@ public class MethodDeclaration extends BodyDeclaration {
 			return PROPERTY_DESCRIPTORS_8_0;
 		}
 	}
+
+	private ASTNode.NodeList formalSpecificationClauses = new ASTNode.NodeList(FORMAL_SPECIFICATION_CLAUSES_PROPERTY);
 
 	/**
 	 * <code>true</code> for a constructor, <code>false</code> for a method.
@@ -577,6 +586,9 @@ public class MethodDeclaration extends BodyDeclaration {
 
 	@Override
 	final List internalGetChildListProperty(ChildListPropertyDescriptor property) {
+		if (property == FORMAL_SPECIFICATION_CLAUSES_PROPERTY) {
+			return formalSpecificationClauses();
+		}
 		if (property == MODIFIERS2_PROPERTY) {
 			return modifiers();
 		}
@@ -623,6 +635,8 @@ public class MethodDeclaration extends BodyDeclaration {
 	ASTNode clone0(AST target) {
 		MethodDeclaration result = new MethodDeclaration(target);
 		result.setSourceRange(getStartPosition(), getLength());
+		result.formalSpecificationClauses().addAll(
+			ASTNode.copySubtrees(target, formalSpecificationClauses()));
 		result.setJavadoc(
 			(Javadoc) ASTNode.copySubtree(target, getJavadoc()));
 		if (this.ast.apiLevel == AST.JLS2_INTERNAL) {
@@ -669,12 +683,16 @@ public class MethodDeclaration extends BodyDeclaration {
 		return matcher.match(this, other);
 	}
 
+	/**
+	 * @since 3.21
+	 */
 	@Override
 	void accept0(ASTVisitor visitor) {
 		boolean visitChildren = visitor.visit(this);
 		if (visitChildren) {
 			// visit children in normal left to right reading order
 			acceptChild(visitor, getJavadoc());
+			acceptChildren(visitor, this.formalSpecificationClauses);
 			if (this.ast.apiLevel == AST.JLS2_INTERNAL) {
 				acceptChild(visitor, getReturnType());
 			} else {
@@ -698,6 +716,13 @@ public class MethodDeclaration extends BodyDeclaration {
 			acceptChild(visitor, getBody());
 		}
 		visitor.endVisit(this);
+	}
+
+	/**
+	 * @since 3.24
+	 */
+	public List formalSpecificationClauses() {
+		return this.formalSpecificationClauses;
 	}
 
 	/**
@@ -1255,6 +1280,7 @@ public class MethodDeclaration extends BodyDeclaration {
 		return
 			memSize()
 			+ (this.optionalDocComment == null ? 0 : getJavadoc().treeSize())
+			+ (this.formalSpecificationClauses.listSize())
 			+ (this.modifiers == null ? 0 : this.modifiers.listSize())
 			+ (this.typeParameters == null ? 0 : this.typeParameters.listSize())
 			+ (this.methodName == null ? 0 : getName().treeSize())
