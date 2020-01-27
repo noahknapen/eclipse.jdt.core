@@ -10278,7 +10278,6 @@ protected void consumeToken(int type) {
 			break;
 		case TokenNameRestrictedIdentifierrecord:
 		case TokenNameold :
-			resetModifiers();
 			pushOnIntStack(this.scanner.startPosition);
 			break;
 		case TokenNameclass :
