@@ -6,14 +6,19 @@ import java.util.HashMap;
 
 import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
+import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
 import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
 import org.eclipse.jdt.internal.compiler.flow.ExceptionHandlingFlowContext;
 import org.eclipse.jdt.internal.compiler.flow.FlowInfo;
+import org.eclipse.jdt.internal.compiler.lookup.ArrayBinding;
 import org.eclipse.jdt.internal.compiler.lookup.BlockScope;
 import org.eclipse.jdt.internal.compiler.lookup.ClassScope;
+import org.eclipse.jdt.internal.compiler.lookup.FieldBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodBinding;
 import org.eclipse.jdt.internal.compiler.lookup.MethodScope;
+import org.eclipse.jdt.internal.compiler.lookup.PackageBinding;
+import org.eclipse.jdt.internal.compiler.lookup.ReferenceBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeBinding;
 import org.eclipse.jdt.internal.compiler.lookup.TypeIds;
 
@@ -221,200 +226,251 @@ public class FormalSpecification {
 			
 			ASTVisitor checker = new ASTVisitor() {
 				
-				private boolean isVisible(MethodBinding binding) {
-					if (!isVisible(binding.declaringClass))
-						return false;
-					if (binding.isPublic())
+				private boolean isVisible(int modifiers, PackageBinding packageBinding) {
+					if ((modifiers & ClassFileConstants.AccPublic) != 0)
 						return true;
-					if (FormalSpecification.this.method.binding.isPublic())
+					if (FormalSpecification.this.method.binding.isPublic() && FormalSpecification.this.method.binding.declaringClass.isPublic())
 						return false;
 					if (FormalSpecification.this.method.binding.isPrivate())
 						return true;
-					if (binding.isPrivate())
+					if ((modifiers & ClassFileConstants.AccPrivate) != 0)
 						return false;
 					// Here, both elements are either protected or package-accessible
-					// TODO(fsc4j): Deal with 'protected' case
-					// Here, we assume both elements are package-accessible
-					return binding.declaringClass.fPackage == FormalSpecification.this.method.binding.declaringClass.fPackage;
+					if (packageBinding != FormalSpecification.this.method.binding.declaringClass.fPackage)
+						return false;
+					if (FormalSpecification.this.method.binding.isProtected()) {
+						// TODO(fsc4j): More checks are required here
+						if (!((modifiers & ClassFileConstants.AccProtected) != 0))
+							return false;
+					}
+					return true;
+				}
+				
+				private boolean isVisible(ReferenceBinding binding) {
+					return isVisible(binding.modifiers, binding.fPackage);
+				}
+				
+				private boolean isVisible(TypeBinding binding) {
+					if (binding instanceof ArrayBinding)
+						return isVisible(((ArrayBinding)binding).leafComponentType);
+					else if (binding instanceof ReferenceBinding)
+						return isVisible((ReferenceBinding)binding);
+					else
+						return true;
+				}
+
+				private boolean isVisible(MethodBinding binding) {
+					if (!isVisible(binding.declaringClass))
+						return false;
+					return isVisible(binding.modifiers, binding.declaringClass.fPackage);
+				}
+				
+				private void checkTypeReference(ASTNode node, TypeBinding binding) {
+					if (!isVisible(binding))
+						FormalSpecification.this.method.scope.problemReporter().notVisibleType(node, binding);
+				}
+				
+				private void checkConstructor(ASTNode node, MethodBinding binding) {
+					if (!isVisible(binding))
+						FormalSpecification.this.method.scope.problemReporter().notVisibleConstructor(node, binding);
 				}
 
 				@Override
 				public boolean visit(AllocationExpression allocationExpression, BlockScope scope) {
-					MethodBinding binding = allocationExpression.binding;
-					if (!isVisible(binding))
-						FormalSpecification.this.method.scope.problemReporter().notVisibleConstructor(allocationExpression, binding);
+					checkConstructor(allocationExpression, allocationExpression.binding);					
 					return true;
 				}
 
 				@Override
 				public boolean visit(ArrayAllocationExpression arrayAllocationExpression, BlockScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(arrayAllocationExpression, scope);
+					checkTypeReference(arrayAllocationExpression, arrayAllocationExpression.resolvedType);
+					return true;
 				}
 
 				@Override
 				public boolean visit(ArrayQualifiedTypeReference arrayQualifiedTypeReference, BlockScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(arrayQualifiedTypeReference, scope);
+					checkTypeReference(arrayQualifiedTypeReference, arrayQualifiedTypeReference.resolvedType);
+					return true;
 				}
 
 				@Override
 				public boolean visit(ArrayQualifiedTypeReference arrayQualifiedTypeReference, ClassScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(arrayQualifiedTypeReference, scope);
+					checkTypeReference(arrayQualifiedTypeReference, arrayQualifiedTypeReference.resolvedType);
+					return true;
 				}
 
 				@Override
 				public boolean visit(ArrayTypeReference arrayTypeReference, BlockScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(arrayTypeReference, scope);
+					checkTypeReference(arrayTypeReference, arrayTypeReference.resolvedType);
+					return true;
 				}
 
 				@Override
 				public boolean visit(ArrayTypeReference arrayTypeReference, ClassScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(arrayTypeReference, scope);
+					checkTypeReference(arrayTypeReference, arrayTypeReference.resolvedType);
+					return true;
+				}
+				
+				private void checkAssignment(ASTNode node) {
+					FormalSpecification.this.method.scope.problemReporter().assignmentInJavadoc(node);
 				}
 
 				@Override
 				public boolean visit(Assignment assignment, BlockScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(assignment, scope);
+					checkAssignment(assignment);
+					return true;
 				}
 
 				@Override
 				public boolean visit(ClassLiteralAccess classLiteral, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(classLiteral, classLiteral.resolvedType);
 					return super.visit(classLiteral, scope);
 				}
 
 				@Override
 				public boolean visit(CompoundAssignment compoundAssignment, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkAssignment(compoundAssignment);
 					return super.visit(compoundAssignment, scope);
+				}
+				
+				private void checkFieldReference(ASTNode node, FieldBinding binding) {
+					if (!isVisible(binding.declaringClass) || !isVisible(binding.modifiers, binding.declaringClass.fPackage))
+						FormalSpecification.this.method.scope.problemReporter().notVisibleField(node, binding);
 				}
 
 				@Override
 				public boolean visit(FieldReference fieldReference, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkFieldReference(fieldReference, fieldReference.binding);
 					return super.visit(fieldReference, scope);
 				}
 
 				@Override
 				public boolean visit(FieldReference fieldReference, ClassScope scope) {
-					// TODO Auto-generated method stub
+					checkFieldReference(fieldReference, fieldReference.binding);
 					return super.visit(fieldReference, scope);
+				}
+				
+				private void checkMethodReference(long nameSourcePosition, MethodBinding binding) {
+					if (!isVisible(binding.declaringClass) || !isVisible(binding.modifiers, binding.declaringClass.fPackage))
+						FormalSpecification.this.method.scope.problemReporter().notVisibleMethod(nameSourcePosition, binding);
 				}
 
 				@Override
 				public boolean visit(MessageSend messageSend, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkMethodReference(messageSend.nameSourcePosition, messageSend.binding);
 					return super.visit(messageSend, scope);
 				}
 
 				@Override
 				public boolean visit(ParameterizedQualifiedTypeReference parameterizedQualifiedTypeReference,
 						BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(parameterizedQualifiedTypeReference, parameterizedQualifiedTypeReference.resolvedType);
 					return super.visit(parameterizedQualifiedTypeReference, scope);
 				}
 
 				@Override
 				public boolean visit(ParameterizedQualifiedTypeReference parameterizedQualifiedTypeReference,
 						ClassScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(parameterizedQualifiedTypeReference, parameterizedQualifiedTypeReference.resolvedType);
 					return super.visit(parameterizedQualifiedTypeReference, scope);
 				}
 
 				@Override
 				public boolean visit(ParameterizedSingleTypeReference parameterizedSingleTypeReference,
 						BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(parameterizedSingleTypeReference, parameterizedSingleTypeReference.resolvedType);
 					return super.visit(parameterizedSingleTypeReference, scope);
 				}
 
 				@Override
 				public boolean visit(ParameterizedSingleTypeReference parameterizedSingleTypeReference,
 						ClassScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(parameterizedSingleTypeReference, parameterizedSingleTypeReference.resolvedType);
 					return super.visit(parameterizedSingleTypeReference, scope);
 				}
 
 				@Override
+				public boolean visit(PostfixExpression postfixExpression, BlockScope scope) {
+					checkAssignment(postfixExpression);
+					return super.visit(postfixExpression, scope);
+				}
+
+				@Override
+				public boolean visit(PrefixExpression prefixExpression, BlockScope scope) {
+					checkAssignment(prefixExpression);
+					return super.visit(prefixExpression, scope);
+				}
+
+				@Override
 				public boolean visit(QualifiedAllocationExpression qualifiedAllocationExpression, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkConstructor(qualifiedAllocationExpression, qualifiedAllocationExpression.binding);
 					return super.visit(qualifiedAllocationExpression, scope);
+				}
+				
+				private void checkNameReference(NameReference reference) {
+					if (reference.binding instanceof TypeBinding)
+						checkTypeReference(reference, (TypeBinding)reference.binding);
+					if (reference.binding instanceof FieldBinding)
+						checkFieldReference(reference, (FieldBinding)reference.binding);
 				}
 
 				@Override
 				public boolean visit(QualifiedNameReference qualifiedNameReference, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkNameReference(qualifiedNameReference);
 					return super.visit(qualifiedNameReference, scope);
 				}
 
 				@Override
 				public boolean visit(QualifiedNameReference qualifiedNameReference, ClassScope scope) {
-					// TODO Auto-generated method stub
+					checkNameReference(qualifiedNameReference);
 					return super.visit(qualifiedNameReference, scope);
 				}
 
 				@Override
-				public boolean visit(QualifiedSuperReference qualifiedSuperReference, BlockScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(qualifiedSuperReference, scope);
-				}
-
-				@Override
-				public boolean visit(QualifiedSuperReference qualifiedSuperReference, ClassScope scope) {
-					// TODO Auto-generated method stub
-					return super.visit(qualifiedSuperReference, scope);
-				}
-
-				@Override
 				public boolean visit(QualifiedTypeReference qualifiedTypeReference, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(qualifiedTypeReference, qualifiedTypeReference.resolvedType);
 					return super.visit(qualifiedTypeReference, scope);
 				}
 
 				@Override
 				public boolean visit(QualifiedTypeReference qualifiedTypeReference, ClassScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(qualifiedTypeReference, qualifiedTypeReference.resolvedType);
 					return super.visit(qualifiedTypeReference, scope);
 				}
 
 				@Override
 				public boolean visit(SingleNameReference singleNameReference, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkNameReference(singleNameReference);
 					return super.visit(singleNameReference, scope);
 				}
 
 				@Override
 				public boolean visit(SingleNameReference singleNameReference, ClassScope scope) {
-					// TODO Auto-generated method stub
+					checkNameReference(singleNameReference);
 					return super.visit(singleNameReference, scope);
 				}
 
 				@Override
 				public boolean visit(SingleTypeReference singleTypeReference, BlockScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(singleTypeReference, singleTypeReference.resolvedType);
 					return super.visit(singleTypeReference, scope);
 				}
 
 				@Override
 				public boolean visit(SingleTypeReference singleTypeReference, ClassScope scope) {
-					// TODO Auto-generated method stub
+					checkTypeReference(singleTypeReference, singleTypeReference.resolvedType);
 					return super.visit(singleTypeReference, scope);
 				}
 
 				@Override
 				public boolean visit(ThrowStatement throwStatement, BlockScope scope) {
-					// TODO Auto-generated method stub
+					FormalSpecification.this.method.scope.problemReporter().throwInJavadoc(throwStatement);
 					return super.visit(throwStatement, scope);
 				}
 
 				@Override
 				public boolean visit(TryStatement tryStatement, BlockScope scope) {
-					// TODO Auto-generated method stub
+					FormalSpecification.this.method.scope.problemReporter().tryInJavadoc(tryStatement);
 					return super.visit(tryStatement, scope);
 				}
 				
