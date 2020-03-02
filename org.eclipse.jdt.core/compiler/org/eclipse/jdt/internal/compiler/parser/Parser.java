@@ -38,6 +38,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13363,6 +13364,13 @@ public Expression parseExpression(char[] source, int offset, int length, Compila
 	this.compilationUnit = unit;
 
 	this.scanner.setSource(source);
+	if (
+			unit != null &&
+			unit.compilationResult != null &&
+			unit.compilationResult.javadocCommentsInfo != null &&
+			unit.compilationResult.javadocCommentsInfo.sourceLength == source.length &&
+			unit.compilationResult.javadocCommentsInfo.sourceHash == Arrays.hashCode(source))
+		this.scanner.setJavadocCommentsInfo(unit.compilationResult.javadocCommentsInfo);
 	this.scanner.resetTo(offset, offset + length - 1);
 	try {
 		parse();
@@ -13456,6 +13464,7 @@ public void parseStatements(ReferenceContext rc, int start, int end, TypeDeclara
 public void persistLineSeparatorPositions() {
 	if (this.scanner.recordLineSeparator) {
 		this.compilationUnit.compilationResult.lineSeparatorPositions = this.scanner.getLineEnds();
+		this.compilationUnit.compilationResult.javadocCommentsInfo = this.scanner.getJavadocCommentsInfo();
 	}
 }
 /*
