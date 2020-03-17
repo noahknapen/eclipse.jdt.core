@@ -357,6 +357,14 @@ public class s4jie2TestSuite {
 				"	at Main.main$post(multiline_lambdas.java:4)\n" + 
 				"	at Main.main(multiline_lambdas.java:8)\n");
 		testCompile("old_resolvedType", true, "", "");
+		testCompile("bad_return_type", false, "",
+				"----------\n" + 
+				"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/bad_return_type.java (at line 6)\n" + 
+				"	static Foo<Object> foo() {}\n" + 
+				"	       ^^^\n" + 
+				"Incorrect number of arguments for type Foo<A,B>; it cannot be parameterized with arguments <Object>\n" + 
+				"----------\n" + 
+				"1 problem (1 error)\n");
 		
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
