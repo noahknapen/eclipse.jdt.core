@@ -365,6 +365,14 @@ public class s4jie2TestSuite {
 				"Incorrect number of arguments for type Foo<A,B>; it cannot be parameterized with arguments <Object>\n" + 
 				"----------\n" + 
 				"1 problem (1 error)\n");
+	    testCompile("qualified_name_visibility_check", false, "",
+	    		"----------\n" + 
+	    		"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/qualified_name_visibility_check.java (at line 6)\n" + 
+	    		"	* @pre | bar.x != 0\n" + 
+	    		"	         ^^^^^\n" + 
+	    		"The field Foo.x is not visible\n" + 
+	    		"----------\n" + 
+	    		"1 problem (1 error)\n");
 		
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
