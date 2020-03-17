@@ -577,7 +577,7 @@ public abstract class AbstractMethodDeclaration
 			if (this.formalSpecification != null)
 				this.formalSpecification.resolve();
 			resolveStatements();
-			if (this.formalSpecification != null && this.formalSpecification.postconditions != null) {
+			if (this.formalSpecification != null && this.formalSpecification.postconditions != null && !this.ignoreFurtherInvestigation) {
 				this.formalSpecification.postconditionMethodCall.resolve(this.scope);
 				this.formalSpecification.postconditionVariableDeclaration.binding.useFlag = LocalVariableBinding.USED;
 			}
