@@ -1022,6 +1022,10 @@ protected ParameterizedQualifiedTypeReference computeQualifiedGenericsFromRightS
 protected void concatExpressionLists() {
 	this.expressionLengthStack[--this.expressionLengthPtr]++;
 }
+protected void concatJavadocFormalPartLists() {
+	int top = this.expressionLengthStack[this.expressionLengthPtr--];
+	this.expressionLengthStack[this.expressionLengthPtr] += top;
+}
 protected void concatGenericsLists() {
 	this.genericsLengthStack[this.genericsLengthPtr - 1] += this.genericsLengthStack[this.genericsLengthPtr--];
 }
@@ -4786,7 +4790,8 @@ protected void consumeMethodHeaderExtendedDims() {
 }
 private FormalSpecificationClause.Tag javadocFormalPartTag;
 protected void consumeJavadocFormalPart() {
-	this.expressionStack[this.expressionPtr] = new FormalSpecificationClause(this.javadocFormalPartTag, this.expressionStack[this.expressionPtr]);
+	if (this.expressionLengthStack[this.expressionLengthPtr] == 1)
+		this.expressionStack[this.expressionPtr] = new FormalSpecificationClause(this.javadocFormalPartTag, this.expressionStack[this.expressionPtr]);
 }
 protected void consumeMethodHeaderName(boolean isAnnotationMethod) {
 	// MethodHeaderName ::= Modifiersopt Type 'Identifier' '('
@@ -6531,12 +6536,12 @@ protected void consumeRule(int act) {
 		    consumeAnnotationAsModifier();
 			break;
 
-    case 211 : if (DEBUG) { System.out.println("JavadocFormalParts ::= Expression"); }  //$NON-NLS-1$
+    case 211 : if (DEBUG) { System.out.println("JavadocFormalParts ::= Expressionopt"); }  //$NON-NLS-1$
 		    consumeJavadocFormalPart();
 			break;
 
     case 212 : if (DEBUG) { System.out.println("JavadocFormalParts ::= JavadocFormalParts..."); }  //$NON-NLS-1$
-		    consumeJavadocFormalPart(); concatExpressionLists();
+		    consumeJavadocFormalPart(); concatJavadocFormalPartLists();
 			break;
 
     case 213 : if (DEBUG) { System.out.println("ClassDeclaration ::= ClassHeader ClassBody"); }  //$NON-NLS-1$
