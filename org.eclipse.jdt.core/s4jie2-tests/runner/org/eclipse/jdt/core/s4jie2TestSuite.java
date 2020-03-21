@@ -382,6 +382,42 @@ public class s4jie2TestSuite {
 	    		"----------\n" + 
 	    		"1 problem (1 error)\n");
 	    testCompile("nested_lambda", true, "", "");
+	    testCompile("throws_may_throw_syntax_error", false, "",
+	    		"----------\n" + 
+	    		"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw_syntax_error.java (at line 6)\n" + 
+	    		"	*    | 10000 <=\n" + 
+	    		"	             ^^\n" + 
+	    		"Syntax error on token \"<=\", Expression expected after this token\n" + 
+	    		"----------\n" + 
+	    		"2. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw_syntax_error.java (at line 12)\n" + 
+	    		"	*    | 5000 <=\n" + 
+	    		"	            ^^\n" + 
+	    		"Syntax error on token \"<=\", Expression expected after this token\n" + 
+	    		"----------\n" + 
+	    		"2 problems (2 errors)\n");
+	    testCompile("throws_may_throw", false, "",
+	    		"----------\n" + 
+	    		"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 9)\n" + 
+	    		"	*    | 10000 <= y\n" + 
+	    		"	                ^\n" + 
+	    		"y cannot be resolved to a variable\n" + 
+	    		"----------\n" + 
+	    		"2. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 11)\n" + 
+	    		"	*    | 10000 <= z\n" + 
+	    		"	                ^\n" + 
+	    		"The field Foo.z is not visible\n" + 
+	    		"----------\n" + 
+	    		"3. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 15)\n" + 
+	    		"	*    | 5000 <= y\n" + 
+	    		"	               ^\n" + 
+	    		"y cannot be resolved to a variable\n" + 
+	    		"----------\n" + 
+	    		"4. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 17)\n" + 
+	    		"	*    | 5000 <= z \n" + 
+	    		"	               ^\n" + 
+	    		"The field Foo.z is not visible\n" + 
+	    		"----------\n" + 
+	    		"4 problems (4 errors)\n");
 		
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
