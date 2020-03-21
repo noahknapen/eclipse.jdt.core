@@ -359,7 +359,7 @@ public class s4jie2TestSuite {
 		testCompile("old_resolvedType", true, "", "");
 		testCompile("bad_return_type", false, "",
 				"----------\n" + 
-				"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/bad_return_type.java (at line 6)\n" + 
+				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 6)\n" + 
 				"	static Foo<Object> foo() {}\n" + 
 				"	       ^^^\n" + 
 				"Incorrect number of arguments for type Foo<A,B>; it cannot be parameterized with arguments <Object>\n" + 
@@ -367,7 +367,7 @@ public class s4jie2TestSuite {
 				"1 problem (1 error)\n");
 	    testCompile("qualified_name_visibility_check", false, "",
 	    		"----------\n" + 
-	    		"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/qualified_name_visibility_check.java (at line 6)\n" + 
+	    		"1. ERROR in SOURCE_FILE_FULL_PATH (at line 6)\n" + 
 	    		"	* @pre | bar.x != 0\n" + 
 	    		"	         ^^^^^\n" + 
 	    		"The field Foo.x is not visible\n" + 
@@ -375,7 +375,7 @@ public class s4jie2TestSuite {
 	    		"1 problem (1 error)\n");
 	    testCompile("bad_call", false, "",
 	    		"----------\n" + 
-	    		"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/bad_call.java (at line 4)\n" + 
+	    		"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" + 
 	    		"	* @pre | xs.baz()\n" + 
 	    		"	         ^^^^^^^^\n" + 
 	    		"Cannot invoke baz() on the array type int[]\n" + 
@@ -384,40 +384,43 @@ public class s4jie2TestSuite {
 	    testCompile("nested_lambda", true, "", "");
 	    testCompile("throws_may_throw_syntax_error", false, "",
 	    		"----------\n" + 
-	    		"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw_syntax_error.java (at line 6)\n" + 
+	    		"1. ERROR in SOURCE_FILE_FULL_PATH (at line 6)\n" + 
 	    		"	*    | 10000 <=\n" + 
 	    		"	             ^^\n" + 
 	    		"Syntax error on token \"<=\", Expression expected after this token\n" + 
 	    		"----------\n" + 
-	    		"2. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw_syntax_error.java (at line 12)\n" + 
+	    		"2. ERROR in SOURCE_FILE_FULL_PATH (at line 12)\n" + 
 	    		"	*    | 5000 <=\n" + 
 	    		"	            ^^\n" + 
 	    		"Syntax error on token \"<=\", Expression expected after this token\n" + 
 	    		"----------\n" + 
 	    		"2 problems (2 errors)\n");
-	    testCompile("throws_may_throw", false, "",
+	    testCompile("throws_may_throw_resolve_error", false, "",
 	    		"----------\n" + 
-	    		"1. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 9)\n" + 
+	    		"1. ERROR in SOURCE_FILE_FULL_PATH (at line 9)\n" + 
 	    		"	*    | 10000 <= y\n" + 
 	    		"	                ^\n" + 
 	    		"y cannot be resolved to a variable\n" + 
 	    		"----------\n" + 
-	    		"2. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 11)\n" + 
+	    		"2. ERROR in SOURCE_FILE_FULL_PATH (at line 11)\n" + 
 	    		"	*    | 10000 <= z\n" + 
 	    		"	                ^\n" + 
 	    		"The field Foo.z is not visible\n" + 
 	    		"----------\n" + 
-	    		"3. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 15)\n" + 
+	    		"3. ERROR in SOURCE_FILE_FULL_PATH (at line 15)\n" + 
 	    		"	*    | 5000 <= y\n" + 
 	    		"	               ^\n" + 
 	    		"y cannot be resolved to a variable\n" + 
 	    		"----------\n" + 
-	    		"4. ERROR in /Users/bartj/s4jie2/eclipse.jdt.core/org.eclipse.jdt.core/s4jie2-tests/src/throws_may_throw.java (at line 17)\n" + 
+	    		"4. ERROR in SOURCE_FILE_FULL_PATH (at line 17)\n" + 
 	    		"	*    | 5000 <= z \n" + 
 	    		"	               ^\n" + 
 	    		"The field Foo.z is not visible\n" + 
 	    		"----------\n" + 
 	    		"4 problems (4 errors)\n");
+	    testCompileAndRun(true, "throws_may_throw_success", true,
+	    		"Caught the IAE\n" + 
+	    		"Caught the IAE\n", "");
 		
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
