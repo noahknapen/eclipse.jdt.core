@@ -1403,6 +1403,7 @@ public void resolve() {
 			}
 		}
 		if (this.fields != null) {
+			boolean hasInvariants = false;
 			for (int i = 0, count = this.fields.length; i < count; i++) {
 				FieldDeclaration field = this.fields[i];
 				switch(field.getKind()) {
@@ -1437,7 +1438,14 @@ public void resolve() {
 						break;
 				}
 				field.resolve(field.isStatic() ? this.staticInitializerScope : this.initializerScope);
+				if (field.invariants != null)
+					hasInvariants = true;
 			}
+			if (hasInvariants)
+				for (FieldDeclaration field : this.fields)
+					if (field.invariants != null)
+						for (Expression e : field.invariants)
+							e.resolveTypeExpecting(this.initializerScope, TypeBinding.BOOLEAN);
 		}
 		if (this.maxFieldCount < localMaxFieldCount) {
 			this.maxFieldCount = localMaxFieldCount;
