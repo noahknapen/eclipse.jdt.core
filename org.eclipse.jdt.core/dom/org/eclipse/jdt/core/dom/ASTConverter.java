@@ -3414,6 +3414,11 @@ class ASTConverter {
 			typeDecl.resolveBinding();
 		}
 		this.referenceContext = oldReferenceContext;
+		
+		if (typeDeclaration.invariants != null)
+			for (org.eclipse.jdt.internal.compiler.ast.Expression e : typeDeclaration.invariants)
+				typeDecl.formalSpecificationClauses().add(convert(e));
+		
 		return typeDecl;
 	}
 
