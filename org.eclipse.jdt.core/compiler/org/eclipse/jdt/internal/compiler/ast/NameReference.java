@@ -116,7 +116,7 @@ public void checkEffectiveFinality(VariableBinding localBinding, Scope scope) {
 		}
 	}
 }
-private static boolean allowsReferencesToNonEffectivelyFinalOuterLocals(Scope scope) {
+public static boolean allowsReferencesToNonEffectivelyFinalOuterLocals(Scope scope) {
 	if (scope instanceof MethodScope) {
 		MethodScope methodScope = (MethodScope)scope;
 		if (methodScope.referenceContext instanceof LambdaExpression) {
