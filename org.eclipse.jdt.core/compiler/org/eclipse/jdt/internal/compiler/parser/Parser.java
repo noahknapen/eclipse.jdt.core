@@ -6675,7 +6675,11 @@ protected void consumeRule(int act) {
 		    concatExpressionLists();
 			break;
 
-    case 218 : if (DEBUG) { System.out.println("JavadocFormalPartExpression ::= ELLIPSIS Expression"); }  //$NON-NLS-1$
+    case 217 : if (DEBUG) { System.out.println("Expression ::= ELLIPSIS Expression"); }  //$NON-NLS-1$
+		    consumeSpreadExpression();
+			break;
+
+    case 218 : if (DEBUG) { System.out.println("Expression_NotName ::= ELLIPSIS Expression"); }  //$NON-NLS-1$
 		    consumeSpreadExpression();
 			break;
 
