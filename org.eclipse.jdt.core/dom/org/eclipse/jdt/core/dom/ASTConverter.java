@@ -2080,6 +2080,9 @@ class ASTConverter {
 		if (expression instanceof org.eclipse.jdt.internal.compiler.ast.OldExpression) {
 			return convert(((org.eclipse.jdt.internal.compiler.ast.OldExpression)expression).expression);
 		}
+		if (expression instanceof org.eclipse.jdt.internal.compiler.ast.SpreadExpression) {
+			return convert(((org.eclipse.jdt.internal.compiler.ast.SpreadExpression)expression).body);
+		}
 		return null;
 	}
 
