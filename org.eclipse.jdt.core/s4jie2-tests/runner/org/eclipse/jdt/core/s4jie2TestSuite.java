@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 
 import org.eclipse.jdt.internal.compiler.batch.Main;
 
@@ -73,6 +74,11 @@ public class s4jie2TestSuite {
 	}
 
 	private static final String binPath = "s4jie2-tests/bin";
+	private static final String multifileBinPath = "s4jie2-tests/bin_multifile";
+	private static final String junitPath = System.getenv("JUNIT_PATH");
+	private static final String junitPlatformConsoleStandalonePath = System.getenv("JUNIT_CONSOLE_PATH");
+	private static final String pathSeparator = System.getProperty("path.separator");
+	private static final String jdk13Path = System.getenv("JDK13_PATH");
 
 	public static void testCompile(String filename, boolean expectedSuccess, String outExpected, String errExpected) {
 		testCompile(false, filename, expectedSuccess, outExpected, errExpected);
@@ -100,6 +106,34 @@ public class s4jie2TestSuite {
 		assertEquals(outWriter.toString().replace(fullPath, "SOURCE_FILE_FULL_PATH"), outExpected, "standard output");
 		assertEquals(errWriter.toString().replace(fullPath, "SOURCE_FILE_FULL_PATH"), errExpected, "standard error");
 		System.out.println("PASS Test " + filename + " compile success");
+	}
+
+	@SuppressWarnings("deprecation")
+	public static void testCompileMultifile(String rootDirectory, boolean expectedSuccess, String outExpected, String errExpected) {
+		System.out.println("     Multifile test " + rootDirectory + " start");
+		StringWriter outWriter = new StringWriter();
+		StringWriter errWriter = new StringWriter();
+		String path = "s4jie2-tests/src_multifile/" + rootDirectory;
+		String fullPath = new File(path).getAbsolutePath();
+		ArrayList<String> classPath = new ArrayList<>();
+		classPath.add(junitPath);
+		if (!rootDirectory.equals("logicalcollections"))
+			classPath.add(multifileBinPath + "/logicalcollections");
+		String classPathString = String.join(pathSeparator, classPath);
+		String args = "-13 --system " + jdk13Path + " -cp " + classPathString + " -proc:none " + path + " -g -d " + multifileBinPath + "/" + rootDirectory;
+		if (Main.compile(args, new PrintWriter(outWriter), new PrintWriter(errWriter)) != expectedSuccess) {
+			System.err.println("FAIL compiler success: expected: " + expectedSuccess + "; actual: " + !expectedSuccess);
+			System.err.println("=== standard output start ===");
+			System.err.println(outWriter.toString().replace(fullPath, "SOURCE_ROOT_PATH"));
+			System.err.println("=== standard output end ===");
+			System.err.println("=== standard error start ===");
+			System.err.println(errWriter.toString().replace(fullPath, "SOURCE_ROOT_PATH"));
+			System.err.println("=== standard error end ===");
+			System.exit(1);
+		}
+		assertEquals(outWriter.toString().replace(fullPath, "SOURCE_ROOT_PATH"), outExpected, "standard output");
+		assertEquals(errWriter.toString().replace(fullPath, "SOURCE_ROOT_PATH"), errExpected, "standard error");
+		System.out.println("PASS Multifile test " + rootDirectory + " compile success");
 	}
 
 	public static void readFullyInto(InputStream stream, StringBuilder builder) {
@@ -157,9 +191,52 @@ public class s4jie2TestSuite {
 		System.out.println("PASS Test "+ filename + " execution success");
 	}
 
+	public static void testCompileAndRunMultifile(String rootDirectory, boolean expectedSuccess, String outExpected, String errExpected) throws IOException {
+		testCompileMultifile(rootDirectory, true, "", "");
+
+		String classpath =
+				//junitPath + pathSeparator +
+				junitPlatformConsoleStandalonePath + pathSeparator +
+				multifileBinPath + "/logicalcollections" + pathSeparator +
+				multifileBinPath + "/" + rootDirectory;
+		Process process = new ProcessBuilder(jdk13Path + "/bin/java", "-classpath", classpath, "-ea", "org.junit.platform.console.ConsoleLauncher", "--fail-if-no-tests", "--disable-banner", "-details-theme=ascii", "--disable-ansi-colors", "--include-classname=.*", "--scan-classpath=" + multifileBinPath + "/" + rootDirectory).start();
+		StringBuilder stdoutBuffer = new StringBuilder();
+		Thread stdoutThread = new Thread(() -> readFullyInto(process.getInputStream(), stdoutBuffer));
+		stdoutThread.start();
+		StringBuilder stderrBuffer = new StringBuilder();
+		Thread stderrThread = new Thread(() -> readFullyInto(process.getErrorStream(), stderrBuffer));
+		stderrThread.start();
+		int exitCode;
+		try {
+			exitCode = process.waitFor();
+			stdoutThread.join();
+			stderrThread.join();
+		} catch (InterruptedException e) {
+			throw new AssertionError(e);
+		}
+		String stdout = stdoutBuffer.toString().replace("Thanks for using JUnit! Support its development at https://junit.org/sponsoring\n\n", "").trim().replaceFirst("Test run finished after [0-9]+ ms", "Test run finished after XX ms");
+		String stderr = stderrBuffer.toString();
+
+		if ((exitCode == 0) != expectedSuccess) {
+			System.err.println("FAIL execution success: expected: " + expectedSuccess + "; actual: exit code " + exitCode);
+			System.err.println("=== standard output start ===");
+			System.err.println(stdout);
+			System.err.println("=== standard output end ===");
+			System.err.println("=== standard error start ===");
+			System.err.println(stderr);
+			System.err.println("=== standard error end ===");
+			System.exit(1);
+		}
+		assertEquals(stdout, outExpected, "standard output");
+		assertEquals(stderr, errExpected, "standard error");
+		System.out.println("PASS Multifile test "+ rootDirectory + " execution success");
+	}
+
 	public static void main(String[] args) throws IOException {
 		if (new File(binPath).exists())
 			deleteFileTree(binPath);
+		if (new File(multifileBinPath).exists())
+			deleteFileTree(multifileBinPath);
 		
 		testCompile("Minimal", true, "", "");
 
@@ -586,6 +663,458 @@ public class s4jie2TestSuite {
 	    		"Syntax error on token \"(\", delete this token\n" + 
 	    		"----------\n" + 
 	    		"1 problem (1 error)\n");
+	    testCompileMultifile("logicalcollections", true, "", "");
+	    testCompileAndRunMultifile("fractions", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| +-- FractionContainerTest [OK]\n" + 
+	    		"| | +-- testAdd() [OK]\n" + 
+	    		"| | +-- testFinancial() [OK]\n" + 
+	    		"| | '-- testEquals() [OK]\n" + 
+	    		"| '-- FractionTest [OK]\n" + 
+	    		"|   '-- test() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[         4 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[         4 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[         4 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[         4 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[         4 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[         4 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
+	    testCompileAndRunMultifile("teams", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| '-- TeamsTest [OK]\n" + 
+	    		"|   '-- test() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[         3 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[         3 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[         3 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[         1 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[         1 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[         1 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
+	    testCompileAndRunMultifile("bigteams", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| '-- BigTeamsTest [OK]\n" + 
+	    		"|   '-- test() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[         3 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[         3 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[         3 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[         1 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[         1 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[         1 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
+	    testCompileAndRunMultifile("bigteams_nested_abs", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| '-- BigTeamsTest [OK]\n" + 
+	    		"|   '-- test() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[         3 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[         3 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[         3 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[         1 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[         1 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[         1 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
+	    testCompileAndRunMultifile("html", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| '-- HtmlTest [OK]\n" + 
+	    		"|   '-- test() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[         3 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[         3 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[         3 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[         1 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[         1 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[         1 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
+	    testCompileAndRunMultifile("networks", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| +-- NodeAppearancesTest [OK]\n" + 
+	    		"| | '-- test() [OK]\n" + 
+	    		"| '-- NodesTest [OK]\n" + 
+	    		"|   '-- test() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[         4 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[         4 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[         4 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[         2 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[         2 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[         2 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
+	    testCompileAndRunMultifile("exams_rooms", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| '-- ExamsRoomsTest [OK]\n" + 
+	    		"|   '-- test() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[         3 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[         3 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[         3 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[         1 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[         1 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[         1 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
+	    testCompileAndRunMultifile("drawit", true,
+	    		".\n" + 
+	    		"+-- JUnit Jupiter [OK]\n" + 
+	    		"| +-- ExtentOfLeftTopWidthHeightTest [OK]\n" + 
+	    		"| | +-- testGetRight() [OK]\n" + 
+	    		"| | +-- testGetWidth() [OK]\n" + 
+	    		"| | +-- testGetTopLeft() [OK]\n" + 
+	    		"| | +-- testGetLeft() [OK]\n" + 
+	    		"| | +-- testWithLeft() [OK]\n" + 
+	    		"| | +-- testContains() [OK]\n" + 
+	    		"| | +-- testWithTop() [OK]\n" + 
+	    		"| | +-- testWithBottom() [OK]\n" + 
+	    		"| | +-- testGetBottom() [OK]\n" + 
+	    		"| | +-- testWithHeight() [OK]\n" + 
+	    		"| | +-- testGetHeight() [OK]\n" + 
+	    		"| | +-- testGetTop() [OK]\n" + 
+	    		"| | +-- testWithRight() [OK]\n" + 
+	    		"| | +-- testWithWidth() [OK]\n" + 
+	    		"| | '-- testGetBottomRight() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_LeavesOnly_NoSetExtent [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | '-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_LeavesOnly_NoSetExtent [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | '-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_Nonleaves_1Level_setExtent [OK]\n" + 
+	    		"| | +-- testSendToBack1() [OK]\n" + 
+	    		"| | +-- testSendToBack2() [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroupAt() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testGetSubgroup() [OK]\n" + 
+	    		"| | +-- testSendToBack_bringToFront() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroups() [OK]\n" + 
+	    		"| | +-- testBringToFront1() [OK]\n" + 
+	    		"| | +-- testBringToFront2() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| | '-- testGetSubgroupCount() [OK]\n" + 
+	    		"| +-- ExtentOfLeftTopRightBottomTest [OK]\n" + 
+	    		"| | +-- testGetRight() [OK]\n" + 
+	    		"| | +-- testGetWidth() [OK]\n" + 
+	    		"| | +-- testToString() [OK]\n" + 
+	    		"| | +-- testGetTopLeft() [OK]\n" + 
+	    		"| | +-- testGetLeft() [OK]\n" + 
+	    		"| | +-- testWithLeft() [OK]\n" + 
+	    		"| | +-- testEqualsObject() [OK]\n" + 
+	    		"| | +-- testContains() [OK]\n" + 
+	    		"| | +-- testHashCode() [OK]\n" + 
+	    		"| | +-- testWithTop() [OK]\n" + 
+	    		"| | +-- testWithBottom() [OK]\n" + 
+	    		"| | +-- testGetBottom() [OK]\n" + 
+	    		"| | +-- testWithHeight() [OK]\n" + 
+	    		"| | +-- testGetHeight() [OK]\n" + 
+	    		"| | +-- testGetTop() [OK]\n" + 
+	    		"| | +-- testWithRight() [OK]\n" + 
+	    		"| | +-- testWithWidth() [OK]\n" + 
+	    		"| | '-- testGetBottomRight() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_LeavesOnly_SetExtent [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | '-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| +-- RoundedPolygonTest [OK]\n" + 
+	    		"| | +-- testSetVertices_improper() [OK]\n" + 
+	    		"| | +-- testContains_true_on_edge() [OK]\n" + 
+	    		"| | +-- testContains_false() [OK]\n" + 
+	    		"| | +-- testUpdate_improper() [OK]\n" + 
+	    		"| | +-- testRemove_proper() [OK]\n" + 
+	    		"| | +-- testGetters() [OK]\n" + 
+	    		"| | +-- testRemove_improper() [OK]\n" + 
+	    		"| | +-- testContains_true_interior() [OK]\n" + 
+	    		"| | +-- testPreciseRoundedPolygonContainsTestStrategy() [OK]\n" + 
+	    		"| | +-- testSetVertices_proper() [OK]\n" + 
+	    		"| | +-- testFastRoundedPolygonContainsTestStrategy() [OK]\n" + 
+	    		"| | +-- testUpdate_proper() [OK]\n" + 
+	    		"| | +-- testContains_true_vertex() [OK]\n" + 
+	    		"| | +-- testSetRadius() [OK]\n" + 
+	    		"| | '-- testInsert_proper() [OK]\n" + 
+	    		"| +-- PointArraysTest [OK]\n" + 
+	    		"| | +-- testCopy() [OK]\n" + 
+	    		"| | +-- testCheckDefinesProperPolygon_coincidingVertices() [OK]\n" + 
+	    		"| | +-- testCheckDefinesProperPolygon_proper() [OK]\n" + 
+	    		"| | +-- testCheckDefinesProperPolygon_vertexOnEdge() [OK]\n" + 
+	    		"| | +-- testInsert() [OK]\n" + 
+	    		"| | +-- testCheckDefinesProperPolygon_intersectingEdges() [OK]\n" + 
+	    		"| | +-- testRemove() [OK]\n" + 
+	    		"| | '-- testUpdate() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_Nonleaves_1Level_setExtent [OK]\n" + 
+	    		"| | +-- testSendToBack1() [OK]\n" + 
+	    		"| | +-- testSendToBack2() [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroupAt() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testGetSubgroup() [OK]\n" + 
+	    		"| | +-- testSendToBack_bringToFront() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroups() [OK]\n" + 
+	    		"| | +-- testBringToFront1() [OK]\n" + 
+	    		"| | +-- testBringToFront2() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| | '-- testGetSubgroupCount() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_LeavesOnly_SetExtent [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | '-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| +-- IntPointTest [OK]\n" + 
+	    		"| | +-- testMinus() [OK]\n" + 
+	    		"| | +-- testPlus() [OK]\n" + 
+	    		"| | +-- testConstructorAndGetters() [OK]\n" + 
+	    		"| | +-- testLineSegmentsIntersect() [OK]\n" + 
+	    		"| | +-- testIsOnLineSegment() [OK]\n" + 
+	    		"| | +-- testAsDoublePoint() [OK]\n" + 
+	    		"| | '-- testEquals() [OK]\n" + 
+	    		"| +-- ExtentOfLeftTopRightBottomTest [OK]\n" + 
+	    		"| | +-- testGetRight() [OK]\n" + 
+	    		"| | +-- testGetWidth() [OK]\n" + 
+	    		"| | +-- testToString() [OK]\n" + 
+	    		"| | +-- testGetTopLeft() [OK]\n" + 
+	    		"| | +-- testGetLeft() [OK]\n" + 
+	    		"| | +-- testWithLeft() [OK]\n" + 
+	    		"| | +-- testEqualsObject() [OK]\n" + 
+	    		"| | +-- testContains() [OK]\n" + 
+	    		"| | +-- testHashCode() [OK]\n" + 
+	    		"| | +-- testWithTop() [OK]\n" + 
+	    		"| | +-- testWithBottom() [OK]\n" + 
+	    		"| | +-- testGetBottom() [OK]\n" + 
+	    		"| | +-- testWithHeight() [OK]\n" + 
+	    		"| | +-- testGetHeight() [OK]\n" + 
+	    		"| | +-- testGetTop() [OK]\n" + 
+	    		"| | +-- testWithRight() [OK]\n" + 
+	    		"| | +-- testWithWidth() [OK]\n" + 
+	    		"| | '-- testGetBottomRight() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_Nonleaves_1Level [OK]\n" + 
+	    		"| | +-- testSendToBack1() [OK]\n" + 
+	    		"| | +-- testSendToBack2() [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroupAt() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testGetSubgroup() [OK]\n" + 
+	    		"| | +-- testSendToBack_bringToFront() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroups() [OK]\n" + 
+	    		"| | +-- testBringToFront1() [OK]\n" + 
+	    		"| | +-- testBringToFront2() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| | '-- testGetSubgroupCount() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_Nonleaves_2Levels [OK]\n" + 
+	    		"| | +-- testSendToBack1() [OK]\n" + 
+	    		"| | +-- testSendToBack2() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_contains() [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_toGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetDrawingCommands() [OK]\n" + 
+	    		"| | +-- testGetSubgroupAt() [OK]\n" + 
+	    		"| | +-- testExporter() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testGetSubgroup() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_createControlPoints_move_bottomRight() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_createControlPoints_move() [OK]\n" + 
+	    		"| | +-- testSendToBack_bringToFront() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_createControlPoints_getLocation() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_toShapeCoordinates() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_createControlPoints_getLocation() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_getters() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_createControlPoints_remove() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_contains() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroups() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_toGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_toShapeCoordinates() [OK]\n" + 
+	    		"| | +-- testBringToFront1() [OK]\n" + 
+	    		"| | +-- testBringToFront2() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_getters() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_createControlPoints_move_upperLeft() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| | '-- testGetSubgroupCount() [OK]\n" + 
+	    		"| +-- ShapeGroupTest_Nonleaves_2Levels [OK]\n" + 
+	    		"| | +-- testSendToBack1() [OK]\n" + 
+	    		"| | +-- testSendToBack2() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_contains() [OK]\n" + 
+	    		"| | +-- testGetShape() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_toGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testGetOriginalExtent() [OK]\n" + 
+	    		"| | +-- testGetDrawingCommands() [OK]\n" + 
+	    		"| | +-- testGetSubgroupAt() [OK]\n" + 
+	    		"| | +-- testGetParentGroup() [OK]\n" + 
+	    		"| | +-- testGetSubgroup() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_createControlPoints_move_bottomRight() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_createControlPoints_move() [OK]\n" + 
+	    		"| | +-- testSendToBack_bringToFront() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_createControlPoints_getLocation() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_toShapeCoordinates() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_createControlPoints_getLocation() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_getters() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_createControlPoints_remove() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_contains() [OK]\n" + 
+	    		"| | +-- testGetExtent() [OK]\n" + 
+	    		"| | +-- testGetSubgroups() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_toGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_toShapeCoordinates() [OK]\n" + 
+	    		"| | +-- testBringToFront1() [OK]\n" + 
+	    		"| | +-- testBringToFront2() [OK]\n" + 
+	    		"| | +-- testRoundedPolygonShape_getters() [OK]\n" + 
+	    		"| | +-- testShapeGroupShape_createControlPoints_move_upperLeft() [OK]\n" + 
+	    		"| | +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"| | +-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"| | '-- testGetSubgroupCount() [OK]\n" + 
+	    		"| +-- ExtentOfLeftTopWidthHeightTest [OK]\n" + 
+	    		"| | +-- testGetRight() [OK]\n" + 
+	    		"| | +-- testGetWidth() [OK]\n" + 
+	    		"| | +-- testGetTopLeft() [OK]\n" + 
+	    		"| | +-- testGetLeft() [OK]\n" + 
+	    		"| | +-- testWithLeft() [OK]\n" + 
+	    		"| | +-- testContains() [OK]\n" + 
+	    		"| | +-- testWithTop() [OK]\n" + 
+	    		"| | +-- testWithBottom() [OK]\n" + 
+	    		"| | +-- testGetBottom() [OK]\n" + 
+	    		"| | +-- testWithHeight() [OK]\n" + 
+	    		"| | +-- testGetHeight() [OK]\n" + 
+	    		"| | +-- testGetTop() [OK]\n" + 
+	    		"| | +-- testWithRight() [OK]\n" + 
+	    		"| | +-- testWithWidth() [OK]\n" + 
+	    		"| | '-- testGetBottomRight() [OK]\n" + 
+	    		"| +-- IntVectorTest [OK]\n" + 
+	    		"| | +-- testAsDoubleVector() [OK]\n" + 
+	    		"| | +-- testConstructorAndGetters() [OK]\n" + 
+	    		"| | +-- testIsCollinearWith() [OK]\n" + 
+	    		"| | +-- testDotProduct() [OK]\n" + 
+	    		"| | '-- testCrossProduct() [OK]\n" + 
+	    		"| +-- DoubleVectorTest [OK]\n" + 
+	    		"| | +-- testScale() [OK]\n" + 
+	    		"| | +-- testPlus() [OK]\n" + 
+	    		"| | +-- testAsAngle() [OK]\n" + 
+	    		"| | +-- testConstructorAndGetters() [OK]\n" + 
+	    		"| | +-- testGetSize() [OK]\n" + 
+	    		"| | +-- testDotProduct() [OK]\n" + 
+	    		"| | '-- testCrossProduct() [OK]\n" + 
+	    		"| +-- DoublePointTest [OK]\n" + 
+	    		"| | +-- testMinus() [OK]\n" + 
+	    		"| | +-- testRound() [OK]\n" + 
+	    		"| | +-- testPlus() [OK]\n" + 
+	    		"| | '-- testConstructorAndGetters() [OK]\n" + 
+	    		"| '-- ShapeGroupTest_Nonleaves_1Level [OK]\n" + 
+	    		"|   +-- testSendToBack1() [OK]\n" + 
+	    		"|   +-- testSendToBack2() [OK]\n" + 
+	    		"|   +-- testGetShape() [OK]\n" + 
+	    		"|   +-- testGetOriginalExtent() [OK]\n" + 
+	    		"|   +-- testGetSubgroupAt() [OK]\n" + 
+	    		"|   +-- testGetParentGroup() [OK]\n" + 
+	    		"|   +-- testGetSubgroup() [OK]\n" + 
+	    		"|   +-- testSendToBack_bringToFront() [OK]\n" + 
+	    		"|   +-- testToInnerCoordinates_IntPoint() [OK]\n" + 
+	    		"|   +-- testGetExtent() [OK]\n" + 
+	    		"|   +-- testGetSubgroups() [OK]\n" + 
+	    		"|   +-- testBringToFront1() [OK]\n" + 
+	    		"|   +-- testBringToFront2() [OK]\n" + 
+	    		"|   +-- testToGlobalCoordinates() [OK]\n" + 
+	    		"|   +-- testToInnerCoordinates_IntVector() [OK]\n" + 
+	    		"|   '-- testGetSubgroupCount() [OK]\n" + 
+	    		"'-- JUnit Vintage [OK]\n" + 
+	    		"\n" + 
+	    		"Test run finished after XX ms\n" + 
+	    		"[        22 containers found      ]\n" + 
+	    		"[         0 containers skipped    ]\n" + 
+	    		"[        22 containers started    ]\n" + 
+	    		"[         0 containers aborted    ]\n" + 
+	    		"[        22 containers successful ]\n" + 
+	    		"[         0 containers failed     ]\n" + 
+	    		"[       267 tests found           ]\n" + 
+	    		"[         0 tests skipped         ]\n" + 
+	    		"[       267 tests started         ]\n" + 
+	    		"[         0 tests aborted         ]\n" + 
+	    		"[       267 tests successful      ]\n" + 
+	    		"[         0 tests failed          ]", "");
 	    
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
