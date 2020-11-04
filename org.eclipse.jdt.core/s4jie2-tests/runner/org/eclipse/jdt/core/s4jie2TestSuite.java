@@ -678,6 +678,26 @@ public class s4jie2TestSuite {
 	    		"----------\n" +
 	    		"1 problem (1 error)\n");
 	    testCompileMultifile("logicalcollections", true, "", "");
+	    testCompileAndRunMultifile("abstract_methods", true,
+	    		  ".\n"
+	    		+ "+-- JUnit Jupiter [OK]\n"
+	    		+ "| '-- AbstractMethodsTest [OK]\n"
+	    		+ "|   '-- test() [OK]\n"
+	    		+ "'-- JUnit Vintage [OK]\n"
+	    		+ "\n"
+	    		+ "Test run finished after XX ms\n"
+	    		+ "[         3 containers found      ]\n"
+	    		+ "[         0 containers skipped    ]\n"
+	    		+ "[         3 containers started    ]\n"
+	    		+ "[         0 containers aborted    ]\n"
+	    		+ "[         3 containers successful ]\n"
+	    		+ "[         0 containers failed     ]\n"
+	    		+ "[         1 tests found           ]\n"
+	    		+ "[         0 tests skipped         ]\n"
+	    		+ "[         1 tests started         ]\n"
+	    		+ "[         0 tests aborted         ]\n"
+	    		+ "[         1 tests successful      ]\n"
+	    		+ "[         0 tests failed          ]", "");
 	    testCompileAndRunMultifile("fractions", true,
 	    		".\n" +
 	    		"+-- JUnit Jupiter [OK]\n" +
