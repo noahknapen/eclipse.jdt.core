@@ -1279,6 +1279,8 @@ private boolean hasStructuralFieldChanges(FieldInfo currentFieldInfo, FieldInfo 
 }
 
 private boolean hasStructuralMethodChanges(MethodInfo currentMethodInfo, MethodInfo otherMethodInfo) {
+	if (currentMethodInfo.hasSpecificationMethod != otherMethodInfo.hasSpecificationMethod)
+		return true;
 	// generic signature
 	if (!CharOperation.equals(currentMethodInfo.getGenericSignature(), otherMethodInfo.getGenericSignature()))
 		return true;
