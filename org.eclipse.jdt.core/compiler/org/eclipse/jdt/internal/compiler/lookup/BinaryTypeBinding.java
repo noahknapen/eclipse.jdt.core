@@ -56,6 +56,7 @@ import org.eclipse.jdt.internal.compiler.ast.Annotation;
 import org.eclipse.jdt.internal.compiler.classfmt.AnnotationInfo;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.classfmt.ExternalAnnotationProvider.IMethodAnnotationWalker;
+import org.eclipse.jdt.internal.compiler.classfmt.MethodInfo;
 import org.eclipse.jdt.internal.compiler.classfmt.MethodInfoWithAnnotations;
 import org.eclipse.jdt.internal.compiler.classfmt.NonNullDefaultAwareTypeAnnotationWalker;
 import org.eclipse.jdt.internal.compiler.classfmt.TypeAnnotationWalker;
@@ -1074,7 +1075,10 @@ private MethodBinding createMethod(IBinaryMethod method, IBinaryType binaryType,
 				isAnnotationType() ? convertMemberValue(method.getDefaultValue(), this.environment, missingTypeNames, true) : null,
 						this.environment);
 	}
-
+	
+	if (method instanceof MethodInfo)
+		result.hasSpecificationMethod = ((MethodInfo)method).hasSpecificationMethod;
+	
 	if (argumentNames != null) result.parameterNames = argumentNames;
 
 	if (use15specifics)
