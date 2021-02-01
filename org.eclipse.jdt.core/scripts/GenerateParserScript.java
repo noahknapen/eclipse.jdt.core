@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import org.eclipse.jdt.internal.compiler.parser.Parser;
+import org.eclipse.jdt.internal.compiler.parser.ParserBuilder;
 
 public class GenerateParserScript {
 
@@ -45,19 +45,6 @@ public class GenerateParserScript {
 			assertTrue(exitCode == 0);
 			if (!ok)
 				System.exit(1);
-		}
-
-		// Update parserNN.rsc and readableNames.props
-		File javadclFile = new File(grammarDir, "javadcl.java");
-		File javahdrFile = new File(grammarDir, "javahdr.java");
-		Parser.buildFilesFromLPG(javadclFile.toString(), javahdrFile.toString());
-		for (int i = 1; i <= 24; i++) {
-			String filename = "parser"+i+".rsc";
-			Files.move(new File(filename).toPath(), new File(parserDir, filename).toPath(), StandardCopyOption.REPLACE_EXISTING);
-		}
-		{
-			String filename = "readableNames.props";
-			Files.move(new File(filename).toPath(), new File(parserDir, filename).toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
 
 		// Update TerminalTokens.java
@@ -129,6 +116,19 @@ public class GenerateParserScript {
 			String newParserText = parserText.substring(0, start) + javaActionText + parserText.substring(end);
 
 			Files.write(parserFile.toPath(), newParserText.getBytes());
+		}
+
+		// Update parserNN.rsc and readableNames.props
+		File javadclFile = new File(grammarDir, "javadcl.java");
+		File javahdrFile = new File(grammarDir, "javahdr.java");
+		ParserBuilder.buildFilesFromLPG(javadclFile.toString(), javahdrFile.toString());
+		for (int i = 1; i <= 24; i++) {
+			String filename = "parser"+i+".rsc";
+			Files.move(new File(filename).toPath(), new File(parserDir, filename).toPath(), StandardCopyOption.REPLACE_EXISTING);
+		}
+		{
+			String filename = "readableNames.props";
+			Files.move(new File(filename).toPath(), new File(parserDir, filename).toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
 
 		// Clean up JikesPG output files
