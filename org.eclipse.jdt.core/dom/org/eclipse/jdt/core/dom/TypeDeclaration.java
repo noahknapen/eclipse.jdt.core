@@ -64,7 +64,7 @@ public class TypeDeclaration extends AbstractTypeDeclaration {
 		internalJavadocPropertyFactory(TypeDeclaration.class);
 
 	/**
-	 * @since 3.24
+	 * @since 3.27
 	 */
 	public static final ChildListPropertyDescriptor FORMAL_SPECIFICATION_CLAUSES_PROPERTY =
 			new ChildListPropertyDescriptor(TypeDeclaration.class, "formalSpecificationClauses", Expression.class, CYCLE_RISK); //$NON-NLS-1$
@@ -521,7 +521,7 @@ public class TypeDeclaration extends AbstractTypeDeclaration {
 	}
 
 	/**
-	 * @since 3.24
+	 * @since 3.27
 	 */
 	public List formalSpecificationClauses() {
 		return this.formalSpecificationClauses;
