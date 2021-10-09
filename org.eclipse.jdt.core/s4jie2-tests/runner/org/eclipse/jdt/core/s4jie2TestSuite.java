@@ -1299,6 +1299,8 @@ public class s4jie2TestSuite {
 				+ "	at Foo.foo$pre(issue23bis.java:2)\n"
 				+ "	at Foo.foo$spec(issue23bis.java)\n"
 				+ "	at Main.main(issue23bis.java:8)\n");
+		testCompileAndRun(true, "effectchecker", true,
+				"public static void fsc4j.EffectChecker.assertCanCreate(java.lang.Object)\n", "");
 			    
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}

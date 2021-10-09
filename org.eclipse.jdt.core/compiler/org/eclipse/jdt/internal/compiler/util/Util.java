@@ -989,6 +989,37 @@ public class Util implements SuffixConstants {
 			output.close();
 		}
 	}
+	public static void writeToDisk(boolean generatePackagesStructure, String outputPath, String relativeFileName, byte[] contents) throws IOException {
+		FileOutputStream file = getFileOutputStream(generatePackagesStructure, outputPath, relativeFileName);
+		/* use java.nio to write
+		if (true) {
+			FileChannel ch = file.getChannel();
+			try {
+				ByteBuffer buffer = ByteBuffer.allocate(classFile.headerOffset + classFile.contentsOffset);
+				buffer.put(classFile.header, 0, classFile.headerOffset);
+				buffer.put(classFile.contents, 0, classFile.contentsOffset);
+				buffer.flip();
+				while (true) {
+					if (ch.write(buffer) == 0) break;
+				}
+			} finally {
+				ch.close();
+			}
+			return;
+		}
+		*/
+		BufferedOutputStream output = new BufferedOutputStream(file, DEFAULT_WRITING_SIZE);
+//		BufferedOutputStream output = new BufferedOutputStream(file);
+		try {
+			// if no IOException occured, output cannot be null
+			output.write(contents);
+			output.flush();
+		} catch(IOException e) {
+			throw e;
+		} finally {
+			output.close();
+		}
+	}
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public static void recordNestedType(ClassFile classFile, TypeBinding typeBinding) {
 		if (classFile.visitedTypes == null) {
