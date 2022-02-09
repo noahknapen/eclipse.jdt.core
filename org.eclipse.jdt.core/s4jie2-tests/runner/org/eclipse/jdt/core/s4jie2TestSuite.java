@@ -1309,6 +1309,26 @@ public class s4jie2TestSuite {
 				+ "Syntax error on tokens, delete these tokens\n"
 				+ "----------\n"
 				+ "1 problem (1 error)\n");
+		testCompileAndRunMultifile("abstract_class_ctor_inv_checks", true,
+				".\n"
+				+ "+-- JUnit Jupiter [OK]\n"
+				+ "| '-- ListTest [OK]\n"
+				+ "|   '-- test() [OK]\n"
+				+ "'-- JUnit Vintage [OK]\n"
+				+ "\n"
+				+ "Test run finished after XX ms\n"
+				+ "[         3 containers found      ]\n"
+				+ "[         0 containers skipped    ]\n"
+				+ "[         3 containers started    ]\n"
+				+ "[         0 containers aborted    ]\n"
+				+ "[         3 containers successful ]\n"
+				+ "[         0 containers failed     ]\n"
+				+ "[         1 tests found           ]\n"
+				+ "[         0 tests skipped         ]\n"
+				+ "[         1 tests started         ]\n"
+				+ "[         0 tests aborted         ]\n"
+				+ "[         1 tests successful      ]\n"
+				+ "[         0 tests failed          ]", "");
 			    
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
