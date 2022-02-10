@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import org.eclipse.jdt.internal.compiler.batch.Main;
 
 /**
- * @since 3.27
+ * @since 3.28
  */
 @SuppressWarnings("nls")
 public class s4jie2TestSuite {

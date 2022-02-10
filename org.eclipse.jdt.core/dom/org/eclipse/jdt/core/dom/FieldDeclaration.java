@@ -50,7 +50,7 @@ public class FieldDeclaration extends BodyDeclaration {
 		internalJavadocPropertyFactory(FieldDeclaration.class);
 
 	/**
-	 * @since 3.27
+	 * @since 3.28
 	 */
 	public static final ChildListPropertyDescriptor FORMAL_SPECIFICATION_CLAUSES_PROPERTY =
 		new ChildListPropertyDescriptor(FieldDeclaration.class, "formalSpecificationClauses", Expression.class, CYCLE_RISK); //$NON-NLS-1$
@@ -291,7 +291,7 @@ public class FieldDeclaration extends BodyDeclaration {
 	}
 
 	/**
-	 * @since 3.27
+	 * @since 3.28
 	 */
 	public List formalSpecificationClauses() {
 		return this.formalSpecificationClauses;
