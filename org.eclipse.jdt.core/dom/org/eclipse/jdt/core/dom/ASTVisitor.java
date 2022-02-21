@@ -110,6 +110,9 @@ public abstract class ASTVisitor {
 	 */
 	private boolean visitDocTags;
 	
+	/**
+	 * @since 3.28
+	 */
 	public boolean visitFSC4JNodes = true;
 
 	/**
