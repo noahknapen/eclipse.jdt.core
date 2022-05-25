@@ -977,6 +977,12 @@ private void internalAnalyseCode(FlowContext flowContext, FlowInfo flowInfo) {
 	}
 }
 
+private AssertStatement createAssertStatement(String message, Expression e) {
+	if (e instanceof TrueLiteral)
+		return new AssertStatement(e, e.sourceStart);
+	return new AssertStatement(new StringLiteral(message.toCharArray(), e.sourceStart, e.sourceEnd, 0), e, e.sourceStart);
+}
+
 private void addAndResolveSyntheticsForInvariants() {
 	ArrayList<Expression> classRepresentationInvariants = null;
 	ArrayList<Expression> classAbstractStateInvariants = null;
@@ -1039,11 +1045,11 @@ private void addAndResolveSyntheticsForInvariants() {
 		if (classRepresentationInvariants != null) {
 			this.classRepresentationInvariantsCount = classRepresentationInvariants.size(); 
 			for (Expression invariant : classRepresentationInvariants)
-				body.add(new AssertStatement(invariant, invariant.sourceStart));
+				body.add(createAssertStatement("Representation invariant does not hold", invariant)); //$NON-NLS-1$
 		}
 		if (classAbstractStateInvariants != null) {
 			for (Expression invariant : classAbstractStateInvariants)
-				body.add(new AssertStatement(invariant, invariant.sourceStart));
+				body.add(createAssertStatement("Abstract state invariant does not hold", invariant)); //$NON-NLS-1$
 		}
 		this.classInvariantsMethod.statements = body.toArray(new Statement[body.size()]);
 		this.classInvariantsMethod.resolve(this.scope);
@@ -1073,11 +1079,11 @@ private void addAndResolveSyntheticsForInvariants() {
 		if (packageRepresentationInvariants != null) {
 			this.packageRepresentationInvariantsCount = packageRepresentationInvariants.size();
 			for (Expression invariant : packageRepresentationInvariants)
-				body.add(new AssertStatement(invariant, invariant.sourceStart));
+				body.add(createAssertStatement("Representation invariant does not hold", invariant)); //$NON-NLS-1$
 		}
 		if (packageAbstractStateInvariants != null)
 			for (Expression invariant : packageAbstractStateInvariants)
-				body.add(new AssertStatement(invariant, invariant.sourceStart));
+				body.add(createAssertStatement("Abstract state invariant does not hold", invariant)); //$NON-NLS-1$
 		this.packageInvariantsMethod.statements = body.toArray(new Statement[body.size()]);
 		this.packageInvariantsMethod.resolve(this.scope);
 		if (packageRepresentationInvariants != null)
