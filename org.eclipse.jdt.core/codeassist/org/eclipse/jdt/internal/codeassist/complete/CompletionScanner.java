@@ -178,6 +178,20 @@ protected int getNextToken0() throws InvalidInputException {
 							pushLineSeparator();
 						}
 					}
+					if (this.currentPosition < this.endOfLastJavadocComment) {
+						for (int i = this.javadocCommentPtr; 0 <= i; i--) {
+							if (this.javadocCommentStops[i] <= this.currentPosition)
+								break;
+							if (this.javadocCommentStarts[i] < this.currentPosition) {
+								// The line separator is inside a javadoc comment
+								int token = this.skipToNextJavadocFormalLine(true);
+								if (token == TokenNameNotAToken)
+									break;
+								else
+									return token;
+							}
+						}
+					}
 					isWhiteSpace =
 						(this.currentCharacter == ' ') || CharOperation.isWhitespace(this.currentCharacter);
 				}
@@ -291,6 +305,16 @@ protected int getNextToken0() throws InvalidInputException {
 				case '*' :
 					if (getNextChar('='))
 						return TokenNameMULTIPLY_EQUAL;
+					if (this.currentPosition < this.endOfLastJavadocComment) {
+						for (int i = this.javadocCommentPtr; 0 <= i; i--) {
+							if (this.currentPosition == this.javadocCommentStops[i] - 1) {
+								this.currentPosition++;
+								return TokenNameJAVADOC_FORMAL_PART_END;
+							}
+							if (this.javadocCommentStops[i] <= this.currentPosition)
+								break;
+						}
+					}
 					return TokenNameMULTIPLY;
 				case '%' :
 					if (getNextChar('='))
@@ -574,6 +598,40 @@ protected int getNextToken0() throws InvalidInputException {
 					{
 						int test;
 						if ((test = getNextChar('/', '*')) == 0) { //line comment
+							if (this.currentPosition < this.endOfLastJavadocComment) {
+								boolean insideJavadocFormalPart = false;
+								for (int i = this.javadocCommentPtr; 0 <= i; i--) {
+									if (this.javadocCommentStops[i] <= this.currentPosition)
+										break;
+									if (this.javadocCommentStarts[i] < this.currentPosition) {
+										// The line comment is inside a javadoc comment
+										insideJavadocFormalPart = true;
+										break;
+									}
+								}
+								if (insideJavadocFormalPart) {
+								lineCommentLoop:
+									for (;;) {
+										this.currentCharacter = this.source[this.currentPosition++];
+										switch (this.currentCharacter) {
+											case '\r':
+											case '\n':
+												int token = this.skipToNextJavadocFormalLine(true);
+												if (token == TokenNameNotAToken)
+													break lineCommentLoop;
+												else
+													return token;
+											case '*':
+												if (this.source[this.currentPosition] == '/') {
+													this.currentPosition++;
+													return TokenNameJAVADOC_FORMAL_PART_END;
+												}
+												break;
+										}
+									}
+									break;
+								}
+							}
 							this.lastCommentLinePosition = this.currentPosition;
 							try { //get the next char
 								if (((this.currentCharacter = this.source[this.currentPosition++]) == '\\')
@@ -705,6 +763,19 @@ protected int getNextToken0() throws InvalidInputException {
 							break;
 						}
 						if (test > 0) { //traditional and javadoc comment
+							if (this.currentPosition < this.endOfLastJavadocComment) {
+								int slashPosition = this.currentPosition - 2;
+								for (int i = this.javadocCommentPtr; 0 <= i; i--) {
+									if (this.javadocCommentStops[i] <= slashPosition)
+										break;
+									if (this.javadocCommentStarts[i] < slashPosition) {
+										// The /* is inside a javadoc comment
+										// Treat it like a slash token followed by a star token
+										this.currentPosition--;
+										return TokenNameDIVIDE;
+									}
+								}
+							}
 							try { //get the next char
 								boolean isJavadoc = false, star = false;
 								boolean isUnicode = false;
@@ -794,6 +865,28 @@ protected int getNextToken0() throws InvalidInputException {
 								}
 								int token = isJavadoc ? TokenNameCOMMENT_JAVADOC : TokenNameCOMMENT_BLOCK;
 								recordComment(token);
+								if (isJavadoc && this.endOfLastJavadocComment < this.currentPosition) {
+									int length = this.javadocCommentStarts.length;
+									this.javadocCommentPtr++;
+									if (javadocCommentPtr == length) {
+										int newLength = length * 2;
+										System.arraycopy(
+												this.javadocCommentStarts,
+												0,
+												this.javadocCommentStarts = new int[newLength],
+												0,
+												length);
+										System.arraycopy(
+												this.javadocCommentStops,
+												0,
+												this.javadocCommentStops = new int[newLength],
+												0,
+												length);
+									}
+									this.javadocCommentStarts[this.javadocCommentPtr] = this.startPosition;
+									this.javadocCommentStops[this.javadocCommentPtr] = this.currentPosition;
+									this.endOfLastJavadocComment = this.currentPosition;
+								}
 								this.commentTagStarts[this.commentPtr] = firstTag;
 								if (!isJavadoc && this.startPosition <= this.cursorLocation && this.cursorLocation < this.currentPosition-1){
 									throw new InvalidCursorLocation(InvalidCursorLocation.NO_COMPLETION_INSIDE_COMMENT);
@@ -806,6 +899,13 @@ protected int getNextToken0() throws InvalidInputException {
 									return TokenNameCOMMENT_BLOCK;
 									*/
 									return token;
+								} else if (isJavadoc) {
+									this.currentPosition = this.startPosition + 3;
+								    int formalToken = skipToNextJavadocFormalLine(false);
+								    if (formalToken == TokenNameNotAToken)
+								    	break;
+								    else
+								    	return formalToken;
 								}
 							} catch (IndexOutOfBoundsException e) {
 								this.currentPosition--;
