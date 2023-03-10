@@ -30,6 +30,8 @@ import org.eclipse.jdt.internal.compiler.parser.ScannerHelper;
 import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;
 
 public class CompletionScanner extends Scanner {
+	
+	private boolean formalDotHandled = false;
 
 	public char[] completionIdentifier;
 	public int cursorLocation;
@@ -172,26 +174,32 @@ protected int getNextToken0() throws InvalidInputException {
 					offset = 6;
 				} else {
 					offset = 1;
-					if (((this.currentCharacter == '\r') || (this.currentCharacter == '\n'))
-							&& !(this.source[this.currentPosition - 2] == '.')) { // Rule added to allow completion before skipping to the next javadoc line
+					if ((this.currentCharacter == '\r') || (this.currentCharacter == '\n')) {
 						//checkNonExternalizedString();
-						if (this.recordLineSeparator) {
-							pushLineSeparator();
+						if (this.source[this.currentPosition - 2] == '.' && !this.formalDotHandled) { // If a endline is after a dot, possible completion must be checked before skipping to the next formal javadoc line
+							this.formalDotHandled = true;
 						}
-						if (this.currentPosition < this.endOfLastJavadocComment) {
-							for (int i = this.javadocCommentPtr; 0 <= i; i--) {
-								if (this.javadocCommentStops[i] <= this.currentPosition)
-									break;
-								if (this.javadocCommentStarts[i] < this.currentPosition) {
-									// The line separator is inside a javadoc comment
-									int token = this.skipToNextJavadocFormalLine(true);
-									if (token == TokenNameNotAToken)
+						else {
+							this.formalDotHandled = false; // Set the boolean back to false as a new formal javadoc line will now be analyzed
+							if (this.recordLineSeparator) {
+							pushLineSeparator();
+							}
+							if (this.currentPosition < this.endOfLastJavadocComment) {
+								for (int i = this.javadocCommentPtr; 0 <= i; i--) {
+									if (this.javadocCommentStops[i] <= this.currentPosition)
 										break;
-									else
-										return token;
+									if (this.javadocCommentStarts[i] < this.currentPosition) {
+										// The line separator is inside a javadoc comment
+										int token = this.skipToNextJavadocFormalLine(true);
+										if (token == TokenNameNotAToken)
+											break;
+										else
+											return token;
+									}
 								}
 							}
 						}
+						
 					}
 					isWhiteSpace =
 						(this.currentCharacter == ' ') || CharOperation.isWhitespace(this.currentCharacter);
