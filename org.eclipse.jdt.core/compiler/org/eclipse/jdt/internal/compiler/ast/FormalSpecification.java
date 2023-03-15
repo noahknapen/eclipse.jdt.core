@@ -29,6 +29,7 @@ public class FormalSpecification {
 	private static final char[] preconditionAssertionMessage = "Precondition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] postconditionAssertionMessage = "Postcondition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] throwsAssertionMessage = "@throws condition holds but specified exception type not thrown".toCharArray(); //$NON-NLS-1$
+	private static final char[] throwsNotSpecifiedMessage = "Throw clause has no defined exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
 	private static final char[] PRECONDITION_METHOD_NAME_SUFFIX = "$pre".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_METHOD_NAME_SUFFIX = "$post".toCharArray(); //$NON-NLS-1$
@@ -391,10 +392,11 @@ public class FormalSpecification {
 				
 				if (this.throwsConditions != null) {
 					for (int i = 0; i < this.throwsConditions.length; i++) {
+						Expression e = this.throwsConditions[i];
+
 						if (this.throwsExceptionTypeNames[i] == null) {
-							continue;
+							statementsForBlock.add(new AssertStatement(new StringLiteral(throwsNotSpecifiedMessage, e.sourceStart, e.sourceEnd, 0), new FalseLiteral(e.sourceStart, e.sourceEnd), e.sourceStart));
 						} else {
-							Expression e = this.throwsConditions[i];
 							Expression condition1 = new EqualExpression(
 											new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
 											createIntLiteral(i, e.sourceStart, e.sourceEnd),
