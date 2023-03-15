@@ -391,29 +391,33 @@ public class FormalSpecification {
 				
 				if (this.throwsConditions != null) {
 					for (int i = 0; i < this.throwsConditions.length; i++) {
-						Expression e = this.throwsConditions[i];
-						Expression condition1 = new EqualExpression(
-										new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
-										createIntLiteral(i, e.sourceStart, e.sourceEnd),
-										OperatorIds.EQUAL_EQUAL);
-						Block thenBlock = new Block(0);
-						Expression condition2 = new InstanceOfExpression(
-								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
-								this.throwsExceptionTypeNames[i]
-						);
-						AllocationExpression allocation = new AllocationExpression();
-						allocation.type = javaLangAssertionError();
-						allocation.arguments = new Expression[] {
-								new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
-								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceEnd)
-						};
-						allocation.sourceStart = e.sourceStart;
-						allocation.sourceEnd = e.sourceEnd;
-						thenBlock.statements = new Statement[] {
-								new IfStatement(condition2, new ReturnStatement(null, e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-								new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
-						};
-						postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
+						if (this.throwsExceptionTypeNames[i] == null) {
+							continue;
+						} else {
+							Expression e = this.throwsConditions[i];
+							Expression condition1 = new EqualExpression(
+											new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
+											createIntLiteral(i, e.sourceStart, e.sourceEnd),
+											OperatorIds.EQUAL_EQUAL);
+							Block thenBlock = new Block(0);
+							Expression condition2 = new InstanceOfExpression(
+									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
+									this.throwsExceptionTypeNames[i]
+							);
+							AllocationExpression allocation = new AllocationExpression();
+							allocation.type = javaLangAssertionError();
+							allocation.arguments = new Expression[] {
+									new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
+									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceEnd)
+							};
+							allocation.sourceStart = e.sourceStart;
+							allocation.sourceEnd = e.sourceEnd;
+							thenBlock.statements = new Statement[] {
+									new IfStatement(condition2, new ReturnStatement(null, e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
+									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
+							};
+							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
+						}
 					}
 				}
 
