@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+
 import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
@@ -29,6 +30,7 @@ public class FormalSpecification {
 	private static final char[] preconditionAssertionMessage = "Precondition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] postconditionAssertionMessage = "Postcondition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] throwsAssertionMessage = "@throws condition holds but specified exception type not thrown".toCharArray(); //$NON-NLS-1$
+	private static final char[] thrownExceptionNotformal = "The thrown exception was not specified in the formal specification".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
 	private static final char[] PRECONDITION_METHOD_NAME_SUFFIX = "$pre".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_METHOD_NAME_SUFFIX = "$post".toCharArray(); //$NON-NLS-1$
@@ -49,6 +51,15 @@ public class FormalSpecification {
 		return new QualifiedTypeReference(sources, poss);
 	}
 	
+	private static QualifiedNameReference getNameReference(String name) {
+		String[] components = name.split("\\."); //$NON-NLS-1$
+		char[][] tokens = new char[components.length][];
+		long[] positions = new long[components.length];
+		for (int i = 0; i < components.length; i++)
+			tokens[i] = components[i].toCharArray();
+		return new QualifiedNameReference(tokens, positions, 0, 0);
+	}
+	
 	private static IntLiteral createIntLiteral(int value, int sourceStart, int sourceEnd) {
 		char[] literalChars = String.valueOf(value).toCharArray();
 		return new IntLiteral(literalChars, literalChars, sourceStart, sourceEnd);
@@ -62,6 +73,9 @@ public class FormalSpecification {
 	private static QualifiedTypeReference javaUtilFunctionConsumer() { return getTypeReference("java.util.function.Consumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionBiConsumer() { return getTypeReference("java.util.function.BiConsumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionSupplier() { return getTypeReference("java.util.function.Supplier"); } //$NON-NLS-1$
+	private static QualifiedTypeReference javaLangException() {return getTypeReference("java.lang.Exception");} //$NON-NLS-1$
+	
+	private static QualifiedNameReference javaUtilLoggingLogger() {return getNameReference("java.util.logging.Logger");} //$NON-NLS-1$
 
 	private static TypeReference getBoxedType(TypeBinding binding, TypeReference reference) {
 		switch (binding.id) {
@@ -390,12 +404,57 @@ public class FormalSpecification {
 				int postconditionBlockDeclarationsCount = 0;
 				
 				if (this.throwsConditions != null) {
+					Block body = new Block(this.method.explicitDeclarations);
+					body.statements = this.method.statements;
+					ArrayList<Statement> statementsForOuterBlock = new ArrayList<>();
+					
+					TryStatement tryStatement = new TryStatement();
+					tryStatement.tryBlock = body;
+					tryStatement.catchArguments = new Argument[] {new Argument("$exception".toCharArray(), 0, javaLangException(), 0)}; //$NON-NLS-1$
+					Block catchBlock = new Block(0);
+					
+					
+					
 					for (int i = 0; i < this.throwsConditions.length; i++) {
 						Expression e = this.throwsConditions[i];
 
 						if (this.throwsExceptionTypeNames[i] == null) {
 							this.method.scope.problemReporter().throwShouldSpecifyExceptionType(e);
 						} else {
+							
+							{
+								// TODO: currently this assumes there is only one throw clause!!! It will not work in the case of multiple clauses
+								// Create a logger message if the thrown exception was not specified in one of the formal @throws clauses
+								MessageSend createLogger = new MessageSend();
+								createLogger.receiver = javaUtilLoggingLogger();
+								createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
+								createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), e.sourceStart, e.sourceEnd, 0)}; //$NON-NLS-1$
+								
+								MessageSend generateLoggerMessage = new MessageSend();
+								generateLoggerMessage.receiver = createLogger;
+								generateLoggerMessage.selector = "info".toCharArray(); //$NON-NLS-1$
+								generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, e.sourceStart, e.sourceEnd, 0)};
+								
+								SingleNameReference exceptionVariable = new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart);
+								InstanceOfExpression ifCondition = new InstanceOfExpression(exceptionVariable,this.throwsExceptionTypeNames[i]);
+								Statement thenStatement = new EmptyStatement(e.sourceStart, e.sourceEnd);
+								Statement elseStatement = generateLoggerMessage;
+								IfStatement ifStatement = new IfStatement(ifCondition, thenStatement, elseStatement, e.sourceStart, e.sourceEnd);
+
+								catchBlock.sourceStart = e.sourceStart;
+								catchBlock.sourceEnd = e.sourceEnd;
+								catchBlock.statements = new Statement[] {ifStatement};
+								tryStatement.catchBlocks = new Block[] {catchBlock};
+								statementsForOuterBlock.add(tryStatement);
+								
+								Block outerBlock = new Block(1);
+								outerBlock.statements = statementsForOuterBlock.toArray(new Statement[statementsForOuterBlock.size()]);
+								
+								this.method.statements = new Statement[] {outerBlock};
+								this.method.explicitDeclarations = 0;
+
+							}
+							
 							Expression condition1 = new EqualExpression(
 											new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
 											createIntLiteral(i, e.sourceStart, e.sourceEnd),
