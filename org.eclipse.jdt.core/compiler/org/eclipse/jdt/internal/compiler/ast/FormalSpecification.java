@@ -408,11 +408,13 @@ public class FormalSpecification {
 					body.statements = this.method.statements;
 					ArrayList<Statement> statementsForOuterBlock = new ArrayList<>();
 					
-					TryStatement tryStatement = new TryStatement();
-					tryStatement.tryBlock = body;
-					tryStatement.catchArguments = new Argument[] {new Argument("$exception".toCharArray(), 0, javaLangException(), 0)}; //$NON-NLS-1$
-					Block catchBlock = new Block(0);
-					
+					TryStatement tryMethodStatement = new TryStatement();
+					tryMethodStatement.tryBlock = body;
+					Argument catchExceptionArgument = new Argument("$exception".toCharArray(), 0, javaLangException(), 0); //$NON-NLS-1$
+					catchExceptionArgument.sourceStart = this.method.sourceStart;
+					catchExceptionArgument.sourceEnd = this.method.sourceEnd;
+					tryMethodStatement.catchArguments = new Argument[] {catchExceptionArgument};
+					Block catchMethodExceptionBlock = new Block(0);
 					
 					
 					for (int i = 0; i < this.throwsConditions.length; i++) {
@@ -436,16 +438,16 @@ public class FormalSpecification {
 								generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, e.sourceStart, e.sourceEnd, 0)};
 								
 								SingleNameReference exceptionVariable = new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart);
-								InstanceOfExpression ifCondition = new InstanceOfExpression(exceptionVariable,this.throwsExceptionTypeNames[i]);
-								Statement thenStatement = new EmptyStatement(e.sourceStart, e.sourceEnd);
-								Statement elseStatement = generateLoggerMessage;
-								IfStatement ifStatement = new IfStatement(ifCondition, thenStatement, elseStatement, e.sourceStart, e.sourceEnd);
+								InstanceOfExpression instanceOfExceptionExpression = new InstanceOfExpression(exceptionVariable,this.throwsExceptionTypeNames[i]);
+								IfStatement ifStatement = new IfStatement(instanceOfExceptionExpression, new EmptyStatement(e.sourceStart, e.sourceEnd), generateLoggerMessage, e.sourceStart, e.sourceEnd);
 
-								catchBlock.sourceStart = e.sourceStart;
-								catchBlock.sourceEnd = e.sourceEnd;
-								catchBlock.statements = new Statement[] {ifStatement};
-								tryStatement.catchBlocks = new Block[] {catchBlock};
-								statementsForOuterBlock.add(tryStatement);
+								catchMethodExceptionBlock.sourceStart = e.sourceStart;
+								catchMethodExceptionBlock.sourceEnd = e.sourceEnd;
+								catchMethodExceptionBlock.statements = new Statement[] {ifStatement};
+								catchMethodExceptionBlock.scope = this.method.scope;
+								tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};
+								tryMethodStatement.scope = this.method.scope;
+								statementsForOuterBlock.add(tryMethodStatement);
 								
 								Block outerBlock = new Block(1);
 								outerBlock.statements = statementsForOuterBlock.toArray(new Statement[statementsForOuterBlock.size()]);
