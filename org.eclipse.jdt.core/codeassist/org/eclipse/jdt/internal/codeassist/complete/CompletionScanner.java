@@ -31,8 +31,6 @@ import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;
 
 public class CompletionScanner extends Scanner {
 	
-	private boolean formalDotHandled = false;
-
 	public char[] completionIdentifier;
 	public int cursorLocation;
 	public int endOfEmptyToken = -1;
@@ -176,11 +174,17 @@ protected int getNextToken0() throws InvalidInputException {
 					offset = 1;
 					if ((this.currentCharacter == '\r') || (this.currentCharacter == '\n')) {
 						//checkNonExternalizedString();
-						if (this.source[this.currentPosition - 2] == '.' && !this.formalDotHandled) { // If a endline is after a dot, possible completion must be checked before skipping to the next formal javadoc line
-							this.formalDotHandled = true;
+						// If a endline is after a dot, possible completion must be checked before skipping to the next formal javadoc line
+					if ((whiteStart != this.currentPosition)
+							//&& (previousToken == TokenNameDOT)
+							&& (this.completionIdentifier == null)
+							&& (whiteStart <= this.cursorLocation+1)
+							&& (this.cursorLocation < this.startPosition)
+							&& !ScannerHelper.isJavaIdentifierStart(this.complianceLevel, this.currentCharacter)){
+							this.currentPosition = this.startPosition; // for next token read
+							return TokenNameIdentifier;
 						}
 						else {
-							this.formalDotHandled = false; // Set the boolean back to false as a new formal javadoc line will now be analyzed
 							if (this.recordLineSeparator) {
 							pushLineSeparator();
 							}
