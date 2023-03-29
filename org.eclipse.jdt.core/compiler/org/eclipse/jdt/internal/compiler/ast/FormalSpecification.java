@@ -410,12 +410,11 @@ public class FormalSpecification {
 					
 					TryStatement tryMethodStatement = new TryStatement();
 					tryMethodStatement.tryBlock = body;
-					Argument catchExceptionArgument = new Argument("$exception".toCharArray(), 0, javaLangException(), 0); //$NON-NLS-1$
+					Argument catchExceptionArgument = new Argument(LAMBDA_PARAMETER2_NAME, 0, javaLangException(), 0);
 					catchExceptionArgument.sourceStart = this.method.sourceStart;
 					catchExceptionArgument.sourceEnd = this.method.sourceEnd;
 					tryMethodStatement.catchArguments = new Argument[] {catchExceptionArgument};
 					Block catchMethodExceptionBlock = new Block(0);
-					
 					
 					for (int i = 0; i < this.throwsConditions.length; i++) {
 						Expression e = this.throwsConditions[i];
@@ -440,10 +439,11 @@ public class FormalSpecification {
 								SingleNameReference exceptionVariable = new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart);
 								InstanceOfExpression instanceOfExceptionExpression = new InstanceOfExpression(exceptionVariable,this.throwsExceptionTypeNames[i]);
 								IfStatement ifStatement = new IfStatement(instanceOfExceptionExpression, new EmptyStatement(e.sourceStart, e.sourceEnd), generateLoggerMessage, e.sourceStart, e.sourceEnd);
+								ThrowStatement throwStatement = new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd), e.sourceStart, e.sourceStart);
 
 								catchMethodExceptionBlock.sourceStart = e.sourceStart;
 								catchMethodExceptionBlock.sourceEnd = e.sourceEnd;
-								catchMethodExceptionBlock.statements = new Statement[] {ifStatement};
+								catchMethodExceptionBlock.statements = new Statement[] {ifStatement, throwStatement};
 								catchMethodExceptionBlock.scope = this.method.scope;
 								tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};
 								tryMethodStatement.scope = this.method.scope;
