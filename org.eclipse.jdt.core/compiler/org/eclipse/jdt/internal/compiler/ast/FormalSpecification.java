@@ -73,7 +73,6 @@ public class FormalSpecification {
 	private static QualifiedTypeReference javaUtilFunctionConsumer() { return getTypeReference("java.util.function.Consumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionBiConsumer() { return getTypeReference("java.util.function.BiConsumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionSupplier() { return getTypeReference("java.util.function.Supplier"); } //$NON-NLS-1$
-	private static QualifiedTypeReference javaLangException() {return getTypeReference("java.lang.Exception");} //$NON-NLS-1$
 	
 	private static QualifiedNameReference javaUtilLoggingLogger() {return getNameReference("java.util.logging.Logger");} //$NON-NLS-1$
 
@@ -410,11 +409,27 @@ public class FormalSpecification {
 					
 					TryStatement tryMethodStatement = new TryStatement();
 					tryMethodStatement.tryBlock = body;
-					Argument catchExceptionArgument = new Argument(LAMBDA_PARAMETER2_NAME, 0, javaLangException(), 0);
+					Argument catchExceptionArgument = new Argument(LAMBDA_PARAMETER2_NAME, 0, javaLangRuntimeException(), 0);
 					catchExceptionArgument.sourceStart = this.method.sourceStart;
 					catchExceptionArgument.sourceEnd = this.method.sourceEnd;
 					tryMethodStatement.catchArguments = new Argument[] {catchExceptionArgument};
+
 					Block catchMethodExceptionBlock = new Block(0);
+					catchMethodExceptionBlock.sourceStart = this.method.sourceStart;
+					catchMethodExceptionBlock.sourceEnd = this.method.sourceEnd;
+					catchMethodExceptionBlock.statements = new Statement[] {
+							this.postconditionMethodCall
+							};
+					catchMethodExceptionBlock.scope = this.method.scope; 
+					tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};
+					tryMethodStatement.scope = this.method.scope;
+					statementsForOuterBlock.add(tryMethodStatement);
+					
+					Block outerBlock = new Block(1);
+					outerBlock.statements = statementsForOuterBlock.toArray(new Statement[statementsForOuterBlock.size()]);
+					
+					this.method.statements = new Statement[] {outerBlock};
+					this.method.explicitDeclarations = 0;
 					
 					for (int i = 0; i < this.throwsConditions.length; i++) {
 						Expression e = this.throwsConditions[i];
@@ -426,35 +441,7 @@ public class FormalSpecification {
 							{
 								// TODO: currently this assumes there is only one throw clause!!! It will not work in the case of multiple clauses
 								// Create a logger message if the thrown exception was not specified in one of the formal @throws clauses
-								MessageSend createLogger = new MessageSend();
-								createLogger.receiver = javaUtilLoggingLogger();
-								createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
-								createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), e.sourceStart, e.sourceEnd, 0)}; //$NON-NLS-1$
 								
-								MessageSend generateLoggerMessage = new MessageSend();
-								generateLoggerMessage.receiver = createLogger;
-								generateLoggerMessage.selector = "info".toCharArray(); //$NON-NLS-1$
-								generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, e.sourceStart, e.sourceEnd, 0)};
-								
-								SingleNameReference exceptionVariable = new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart);
-								InstanceOfExpression instanceOfExceptionExpression = new InstanceOfExpression(exceptionVariable,this.throwsExceptionTypeNames[i]);
-								IfStatement ifStatement = new IfStatement(instanceOfExceptionExpression, new EmptyStatement(e.sourceStart, e.sourceEnd), generateLoggerMessage, e.sourceStart, e.sourceEnd);
-								ThrowStatement throwStatement = new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd), e.sourceStart, e.sourceStart);
-
-								catchMethodExceptionBlock.sourceStart = e.sourceStart;
-								catchMethodExceptionBlock.sourceEnd = e.sourceEnd;
-								catchMethodExceptionBlock.statements = new Statement[] {ifStatement, throwStatement};
-								catchMethodExceptionBlock.scope = this.method.scope;
-								tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};
-								tryMethodStatement.scope = this.method.scope;
-								statementsForOuterBlock.add(tryMethodStatement);
-								
-								Block outerBlock = new Block(1);
-								outerBlock.statements = statementsForOuterBlock.toArray(new Statement[statementsForOuterBlock.size()]);
-								
-								this.method.statements = new Statement[] {outerBlock};
-								this.method.explicitDeclarations = 0;
-
 							}
 							
 							Expression condition1 = new EqualExpression(
@@ -476,7 +463,7 @@ public class FormalSpecification {
 							allocation.sourceEnd = e.sourceEnd;
 							thenBlock.statements = new Statement[] {
 									new IfStatement(condition2, new ReturnStatement(null, e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
+									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd) // This allocation is a null pointer!!! Not LAMBDA_PARAMETER2's exception
 							};
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
 						}
@@ -484,11 +471,25 @@ public class FormalSpecification {
 				}
 
 				{
+					
+					MessageSend createLogger = new MessageSend();
+					createLogger.receiver = javaUtilLoggingLogger();
+					createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
+					createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+					
+					MessageSend generateLoggerMessage = new MessageSend();
+					generateLoggerMessage.receiver = createLogger;
+					generateLoggerMessage.selector = "info".toCharArray(); //$NON-NLS-1$
+					generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, this.method.sourceStart, this.method.sourceEnd, 0)};
+					
 					Expression condition = new InstanceOfExpression(
 							new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 							javaLangRuntimeException());
-					Statement thenStatement = new ReturnStatement(null, this.method.bodyStart, this.method.bodyStart);
-					postconditionBlockStatements.add(new IfStatement(condition, thenStatement, this.method.bodyStart, this.method.bodyStart));
+					Block thenBlock = new Block(0);
+					thenBlock.statements = new Statement[]{
+							generateLoggerMessage,
+							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
+					postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
 				}
 				
 				LocalDeclaration resultDeclaration = null;
