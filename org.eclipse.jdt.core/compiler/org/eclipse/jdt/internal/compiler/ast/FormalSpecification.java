@@ -333,6 +333,13 @@ public class FormalSpecification {
 				statementsForBlock.add(statement);
 			}
 			if (this.postconditions != null || this.throwsConditions != null) {
+				this.postconditionMethodCall = new MessageSend();
+				this.postconditionMethodCall.receiver = new SingleNameReference(POSTCONDITION_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
+				this.postconditionMethodCall.selector = "accept".toCharArray(); //$NON-NLS-1$
+				if (this.method.binding.returnType.id == TypeIds.T_void && !(this.method instanceof ConstructorDeclaration))
+					this.postconditionMethodCall.arguments = new Expression[] {new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0)};
+				else
+					this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0), new NullLiteral(0, 0)};
 				int postconditionsLength = this.postconditions == null ? 0 : this.postconditions.length;
 				for (int i = 0; i < postconditionsLength; i++) {
 					this.postconditions[i].traverse(new ASTVisitor() {
@@ -463,7 +470,7 @@ public class FormalSpecification {
 							allocation.sourceEnd = e.sourceEnd;
 							thenBlock.statements = new Statement[] {
 									new IfStatement(condition2, new ReturnStatement(null, e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd) // This allocation is a null pointer!!! Not LAMBDA_PARAMETER2's exception
+									//new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
 							};
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
 						}
@@ -491,6 +498,16 @@ public class FormalSpecification {
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
 					postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
 				}
+				
+				AllocationExpression allocation = new AllocationExpression();
+				allocation.type = javaLangAssertionError();
+				allocation.arguments = new Expression[] {
+						new StringLiteral(throwsAssertionMessage, this.method.sourceStart, this.method.sourceEnd, 0),
+						new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.sourceStart << 32) + this.method.sourceEnd)
+				};
+				allocation.sourceStart = this.method.sourceStart;
+				allocation.sourceEnd = this.method.sourceEnd;
+				postconditionBlockStatements.add(new ThrowStatement(allocation, this.method.sourceStart, this.method.sourceEnd));
 				
 				LocalDeclaration resultDeclaration = null;
 				if (this.method instanceof MethodDeclaration) {
@@ -546,15 +563,7 @@ public class FormalSpecification {
 				else {
 					statementsForBlock.add(new ReturnStatement(postconditionLambda, this.method.bodyStart, this.method.bodyStart));
 					this.postconditionVariableDeclaration.initialization = preconditionLambdaCall;
-				}
-
-				this.postconditionMethodCall = new MessageSend();
-				this.postconditionMethodCall.receiver = new SingleNameReference(POSTCONDITION_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
-				this.postconditionMethodCall.selector = "accept".toCharArray(); //$NON-NLS-1$
-				if (this.method.binding.returnType.id == TypeIds.T_void && !(this.method instanceof ConstructorDeclaration))
-					this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0)};
-				else
-					this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0), new NullLiteral(0, 0)};
+				}	
 			} else {
 				if (!(this.method instanceof ConstructorDeclaration))
 					this.statementsForMethodBody.add(preconditionLambdaCall);
