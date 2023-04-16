@@ -447,7 +447,6 @@ public class FormalSpecification {
 							
 							{
 								// TODO: currently this assumes there is only one throw clause!!! It will not work in the case of multiple clauses
-								// Create a logger message if the thrown exception was not specified in one of the formal @throws clauses
 								
 							}
 							
@@ -469,8 +468,8 @@ public class FormalSpecification {
 							allocation.sourceStart = e.sourceStart;
 							allocation.sourceEnd = e.sourceEnd;
 							thenBlock.statements = new Statement[] {
-									new IfStatement(condition2, new ReturnStatement(null, e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									//new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
+									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
+									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
 							};
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
 						}
@@ -498,16 +497,6 @@ public class FormalSpecification {
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
 					postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
 				}
-				
-				AllocationExpression allocation = new AllocationExpression();
-				allocation.type = javaLangAssertionError();
-				allocation.arguments = new Expression[] {
-						new StringLiteral(throwsAssertionMessage, this.method.sourceStart, this.method.sourceEnd, 0),
-						new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.sourceStart << 32) + this.method.sourceEnd)
-				};
-				allocation.sourceStart = this.method.sourceStart;
-				allocation.sourceEnd = this.method.sourceEnd;
-				postconditionBlockStatements.add(new ThrowStatement(allocation, this.method.sourceStart, this.method.sourceEnd));
 				
 				LocalDeclaration resultDeclaration = null;
 				if (this.method instanceof MethodDeclaration) {
