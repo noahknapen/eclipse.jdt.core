@@ -485,7 +485,7 @@ public class FormalSpecification {
 					
 					MessageSend generateLoggerMessage = new MessageSend();
 					generateLoggerMessage.receiver = createLogger;
-					generateLoggerMessage.selector = "info".toCharArray(); //$NON-NLS-1$
+					generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
 					generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, this.method.sourceStart, this.method.sourceEnd, 0)};
 					
 					Expression condition = new InstanceOfExpression(
