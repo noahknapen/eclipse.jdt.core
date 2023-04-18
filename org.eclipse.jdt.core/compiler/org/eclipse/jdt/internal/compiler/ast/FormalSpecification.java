@@ -337,7 +337,10 @@ public class FormalSpecification {
 				this.postconditionMethodCall.receiver = new SingleNameReference(POSTCONDITION_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
 				this.postconditionMethodCall.selector = "accept".toCharArray(); //$NON-NLS-1$
 				if (this.method.binding.returnType.id == TypeIds.T_void && !(this.method instanceof ConstructorDeclaration))
-					this.postconditionMethodCall.arguments = new Expression[] {new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0)};
+					if (this.throwsConditions == null)
+						this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0)};
+					else
+						this.postconditionMethodCall.arguments = new Expression[] {new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0)};
 				else
 					this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0), new NullLiteral(0, 0)};
 				int postconditionsLength = this.postconditions == null ? 0 : this.postconditions.length;
