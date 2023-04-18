@@ -442,14 +442,8 @@ public class FormalSpecification {
 						Expression e = this.throwsConditions[i];
 
 						if (this.throwsExceptionTypeNames[i] == null) {
-							this.method.scope.problemReporter().throwShouldSpecifyExceptionType(e);
+							continue;
 						} else {
-							
-							{
-								// TODO: currently this assumes there is only one throw clause!!! It will not work in the case of multiple clauses
-								
-							}
-							
 							Expression condition1 = new EqualExpression(
 											new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
 											createIntLiteral(i, e.sourceStart, e.sourceEnd),
@@ -485,7 +479,7 @@ public class FormalSpecification {
 					
 					MessageSend generateLoggerMessage = new MessageSend();
 					generateLoggerMessage.receiver = createLogger;
-					generateLoggerMessage.selector = "info".toCharArray(); //$NON-NLS-1$
+					generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
 					generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, this.method.sourceStart, this.method.sourceEnd, 0)};
 					
 					Expression condition = new InstanceOfExpression(

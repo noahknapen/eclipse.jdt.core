@@ -4963,7 +4963,12 @@ private Annotation[] consumeAnnotations(AbstractMethodDeclaration md) {
 					switch (clause.tag) {
 						case INVAR: clause.addExpression(this, invariants); break;
 						case PRE: clause.addExpression(this, preconditions); break;
-						case THROWS: clause.addExpression(this, throwsConditions); throwsExceptionTypeNames.add(clause.tagArgument); break;
+						case THROWS: 
+							clause.addExpression(this, throwsConditions);
+							throwsExceptionTypeNames.add(clause.tagArgument);
+							if (clause.tagArgument == null)
+								this.problemReporter().throwShouldSpecifyExceptionType(clause);
+							break;
 						case MAY_THROW: clause.addExpression(this, mayThrowConditions); mayThrowExceptionTypeNames.add(clause.tagArgument); break;
 						case POST: clause.addExpression(this, postconditions); break;
 						case INSPECTS:
