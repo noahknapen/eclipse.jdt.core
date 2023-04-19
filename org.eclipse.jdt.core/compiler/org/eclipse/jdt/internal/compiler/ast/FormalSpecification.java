@@ -440,47 +440,13 @@ public class FormalSpecification {
 					this.method.statements = new Statement[] {outerBlock};
 					this.method.explicitDeclarations = 0;
 				}
-				
-				if (this.throwsConditions != null) {
-					for (int i = 0; i < this.throwsConditions.length; i++) {
-						Expression e = this.throwsConditions[i];
 
-						if (this.throwsExceptionTypeNames[i] == null) {
-							continue;
-						} else {
-							Expression condition1 = new EqualExpression(
-											new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
-											createIntLiteral(i, e.sourceStart, e.sourceEnd),
-											OperatorIds.EQUAL_EQUAL);
-							Block thenBlock = new Block(0);
-							Expression condition2 = new InstanceOfExpression(
-									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
-									this.throwsExceptionTypeNames[i]
-							);
-							AllocationExpression allocation = new AllocationExpression();
-							allocation.type = javaLangAssertionError();
-							allocation.arguments = new Expression[] {
-									new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
-									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceEnd)
-							};
-							allocation.sourceStart = e.sourceStart;
-							allocation.sourceEnd = e.sourceEnd;
-							thenBlock.statements = new Statement[] {
-									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
-							};
-							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
-						}
-					}
-				}
-				
 				if (this.mayThrowConditions != null) {
 					for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
 						Expression e = this.mayThrowConditions[i];
 						//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
 						
 						this.mayThrowConditions[i] = new MayThrowExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
-				
 						this.mayThrowConditions[i].traverse(new ASTVisitor() {
 
 							@Override
@@ -546,6 +512,44 @@ public class FormalSpecification {
 					blockDeclarationsCount += 2 * oldExpressions.size();
 				}
 
+				for (int i = 0; i < this.mayThrowConditions.length; i++) {
+					Expression e = this.mayThrowConditions[i];
+					postconditionBlockStatements.add(new AssertStatement(new StringLiteral(maythrowconditionAssertionMessage, e.sourceStart, e.sourceEnd, 0), e, e.sourceStart));
+				}	
+				
+				if (this.throwsConditions != null) {
+					for (int i = 0; i < this.throwsConditions.length; i++) {
+						Expression e = this.throwsConditions[i];
+
+						if (this.throwsExceptionTypeNames[i] == null) {
+							continue;
+						} else {
+							Expression condition1 = new EqualExpression(
+											new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
+											createIntLiteral(i, e.sourceStart, e.sourceEnd),
+											OperatorIds.EQUAL_EQUAL);
+							Block thenBlock = new Block(0);
+							Expression condition2 = new InstanceOfExpression(
+									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
+									this.throwsExceptionTypeNames[i]
+							);
+							AllocationExpression allocation = new AllocationExpression();
+							allocation.type = javaLangAssertionError();
+							allocation.arguments = new Expression[] {
+									new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
+									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceEnd)
+							};
+							allocation.sourceStart = e.sourceStart;
+							allocation.sourceEnd = e.sourceEnd;
+							thenBlock.statements = new Statement[] {
+									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
+									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
+							};
+							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
+						}
+					}
+				}
+				
 				MessageSend createLogger = new MessageSend();
 				createLogger.receiver = javaUtilLoggingLogger();
 				createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
@@ -579,11 +583,7 @@ public class FormalSpecification {
 				for (int i = 0; i < postconditionsLength; i++) {
 					Expression e = this.postconditions[i];
 					postconditionBlockStatements.add(new AssertStatement(new StringLiteral(postconditionAssertionMessage, e.sourceStart, e.sourceEnd, 0), e, e.sourceStart));
-				}	
-				for (int i = 0; i < this.mayThrowConditions.length; i++) {
-					Expression e = this.mayThrowConditions[i];
-					postconditionBlockStatements.add(new AssertStatement(new StringLiteral(maythrowconditionAssertionMessage, e.sourceStart, e.sourceEnd, 0), e, e.sourceStart));
-				}	
+				}		
 				Block postconditionBlock = new Block(postconditionBlockDeclarationsCount);
 				postconditionBlock.statements = new Statement[postconditionBlockStatements.size()];
 				postconditionBlockStatements.toArray(postconditionBlock.statements);
