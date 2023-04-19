@@ -29,6 +29,7 @@ public class FormalSpecification {
 
 	private static final char[] preconditionAssertionMessage = "Precondition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] postconditionAssertionMessage = "Postcondition does not hold".toCharArray(); //$NON-NLS-1$
+	private static final char[] maythrowconditionAssertionMessage = "@may_throw condition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] throwsAssertionMessage = "@throws condition holds but specified exception type not thrown".toCharArray(); //$NON-NLS-1$
 	private static final char[] thrownExceptionNotformal = "The thrown exception was not specified in the formal specification".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
@@ -248,80 +249,7 @@ public class FormalSpecification {
 		HashMap<String, OldExpression.DistinctExpression> oldExpressions = new HashMap<>();
 		int blockDeclarationsCount = 0;
 		this.statementsForMethodBody = new ArrayList<>();
-		
-		if (this.mayThrowConditions != null) {
-			for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
-				Expression e = this.mayThrowConditions[i];
-				//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
-				
-				this.mayThrowConditions[i] = new MayThrowExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
-		
-				this.mayThrowConditions[i].traverse(new ASTVisitor() {
-
-					@Override
-					public boolean visit(OldExpression oldExpression, BlockScope blockScope) {
-						char[] name = Arrays.copyOf(oldExpression.source, oldExpression.source.length);
-						for (int i = 0; i < name.length; i++) { // JVMS 4.2.2 field names cannot contain . ; [ / .
-							switch (name[i]) {
-								case '.': name[i] = '\u2024'; break; // ONE DOT LEADER
-								case ';': name[i] = '\u204f'; break; // REVERSED SEMICOLON 
-								case '[': name[i] = '\u298b'; break; // LEFT SQUARE BRACKET WITH UNDERBAR
-								case ']': name[i] = '\u298c'; break; // RIGHT SQUARE BRACKET WITH UNDERBAR
-								case '/': name[i] = '\u2afd'; break; // DOUBLE SOLIDUS OPERATOR
-							}
-						}
-						char[] innerName = CharOperation.concat(name, OLD_VARIABLE_INNER_SUFFIX);
-						char[] exceptionName = CharOperation.concat(name, OLD_VARIABLE_EXCEPTION_SUFFIX);
-						String nameString = String.valueOf(name);
-						OldExpression.DistinctExpression distinctExpression = oldExpressions.get(nameString);
-						long pos = (oldExpression.sourceStart << 32) + oldExpression.sourceEnd;
-						if (distinctExpression == null) {
-							distinctExpression = new OldExpression.DistinctExpression();
-							oldExpressions.put(nameString, distinctExpression);
-							
-							distinctExpression.exceptionDeclaration = new LocalDeclaration(exceptionName, oldExpression.sourceStart, oldExpression.sourceEnd);
-							distinctExpression.exceptionDeclaration.type = javaLangThrowable();
-							distinctExpression.exceptionDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
-							statementsForBlock.add(distinctExpression.exceptionDeclaration);
-							distinctExpression.outerDeclaration = new LocalDeclaration(name, oldExpression.sourceStart, oldExpression.sourceEnd);
-							distinctExpression.outerDeclaration.type = javaLangObject();
-							distinctExpression.outerDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
-							statementsForBlock.add(distinctExpression.outerDeclaration);
-
-							Block tryBlock = new Block(1);
-							distinctExpression.innerDeclaration = new LocalDeclaration(innerName, oldExpression.sourceStart, oldExpression.sourceEnd);
-							distinctExpression.innerDeclaration.type = new SingleTypeReference("var".toCharArray(), pos); //$NON-NLS-1$
-							distinctExpression.innerDeclaration.initialization = oldExpression.expression;
-							tryBlock.statements = new Statement[] {
-									distinctExpression.innerDeclaration,
-									new Assignment(new SingleNameReference(name, pos), new SingleNameReference(innerName, pos), oldExpression.sourceEnd)
-							};
-							
-							char[] catchArgumentName = "$exception".toCharArray(); //$NON-NLS-1$
-							Argument catchArgument = new Argument(catchArgumentName, pos, javaLangThrowable(), 0);
-							Block catchBlock = new Block(0);
-							catchBlock.statements = new Statement[] {
-									new Assignment(new SingleNameReference(exceptionName, pos), new SingleNameReference(catchArgumentName, pos), oldExpression.sourceEnd)
-							};
-							
-							TryStatement tryStatement = new TryStatement();
-							tryStatement.tryBlock = tryBlock;
-							tryStatement.catchArguments = new Argument[] {catchArgument};
-							tryStatement.catchBlocks = new Block[] {catchBlock};
-							statementsForBlock.add(tryStatement);
-						}
-						oldExpression.distinctExpression = distinctExpression;
-						oldExpression.reference = new SingleNameReference(name, pos);
-						oldExpression.exceptionReference = new SingleNameReference(exceptionName, pos);
-						return false;
-					}
-					
-				}, this.method.scope);
-			}
-			blockDeclarationsCount += 2 * oldExpressions.size();
-		}
-		
-		
+			
 		resolveEffectClause(this.inspectsExpressions);
 		resolveEffectClause(this.mutatesExpressions);
 		//resolveEffectClause(this.createsExpressions); // @creates expressions can refer to 'result'
@@ -366,7 +294,7 @@ public class FormalSpecification {
 						:
 								CharOperation.concat(this.method.selector, ("$" + overloadCount).toCharArray(), PRECONDITION_METHOD_NAME_SUFFIX); //$NON-NLS-1$
 				TypeReference preconditionLambdaType;
-				if (this.postconditions == null && this.throwsConditions == null) {
+				if (this.postconditions == null && this.throwsConditions == null && this.mayThrowConditions == null) {
 					preconditionLambdaType = javaLangRunnable();
 					preconditionLambdaCall.selector = "run".toCharArray(); //$NON-NLS-1$
 				} else {
@@ -403,12 +331,12 @@ public class FormalSpecification {
 				}
 				statementsForBlock.add(statement);
 			}
-			if (this.postconditions != null || this.throwsConditions != null) {
+			if (this.postconditions != null || this.throwsConditions != null || this.mayThrowConditions != null) {
 				this.postconditionMethodCall = new MessageSend();
 				this.postconditionMethodCall.receiver = new SingleNameReference(POSTCONDITION_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
 				this.postconditionMethodCall.selector = "accept".toCharArray(); //$NON-NLS-1$
 				if (this.method.binding.returnType.id == TypeIds.T_void && !(this.method instanceof ConstructorDeclaration))
-					if (this.throwsConditions == null)
+					if (this.throwsConditions == null && this.mayThrowConditions == null)
 						this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0)};
 					else
 						this.postconditionMethodCall.arguments = new Expression[] {new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0)};
@@ -483,7 +411,7 @@ public class FormalSpecification {
 				ArrayList<Statement> postconditionBlockStatements = new ArrayList<>();
 				int postconditionBlockDeclarationsCount = 0;
 				
-				if (this.throwsConditions != null) {
+				if (this.throwsConditions != null || this.mayThrowConditions != null) {
 					Block body = new Block(this.method.explicitDeclarations);
 					body.statements = this.method.statements;
 					ArrayList<Statement> statementsForOuterBlock = new ArrayList<>();
@@ -511,7 +439,9 @@ public class FormalSpecification {
 					
 					this.method.statements = new Statement[] {outerBlock};
 					this.method.explicitDeclarations = 0;
-					
+				}
+				
+				if (this.throwsConditions != null) {
 					for (int i = 0; i < this.throwsConditions.length; i++) {
 						Expression e = this.throwsConditions[i];
 
@@ -543,28 +473,97 @@ public class FormalSpecification {
 						}
 					}
 				}
+				
+				if (this.mayThrowConditions != null) {
+					for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
+						Expression e = this.mayThrowConditions[i];
+						//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
+						
+						this.mayThrowConditions[i] = new MayThrowExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
+				
+						this.mayThrowConditions[i].traverse(new ASTVisitor() {
 
-				{
-					
-					MessageSend createLogger = new MessageSend();
-					createLogger.receiver = javaUtilLoggingLogger();
-					createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
-					createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
-					
-					MessageSend generateLoggerMessage = new MessageSend();
-					generateLoggerMessage.receiver = createLogger;
-					generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
-					generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, this.method.sourceStart, this.method.sourceEnd, 0)};
-					
-					Expression condition = new InstanceOfExpression(
-							new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
-							javaLangRuntimeException());
-					Block thenBlock = new Block(0);
-					thenBlock.statements = new Statement[]{
-							generateLoggerMessage,
-							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
-					postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
+							@Override
+							public boolean visit(OldExpression oldExpression, BlockScope blockScope) {
+								char[] name = Arrays.copyOf(oldExpression.source, oldExpression.source.length);
+								for (int i = 0; i < name.length; i++) { // JVMS 4.2.2 field names cannot contain . ; [ / .
+									switch (name[i]) {
+										case '.': name[i] = '\u2024'; break; // ONE DOT LEADER
+										case ';': name[i] = '\u204f'; break; // REVERSED SEMICOLON 
+										case '[': name[i] = '\u298b'; break; // LEFT SQUARE BRACKET WITH UNDERBAR
+										case ']': name[i] = '\u298c'; break; // RIGHT SQUARE BRACKET WITH UNDERBAR
+										case '/': name[i] = '\u2afd'; break; // DOUBLE SOLIDUS OPERATOR
+									}
+								}
+								char[] innerName = CharOperation.concat(name, OLD_VARIABLE_INNER_SUFFIX);
+								char[] exceptionName = CharOperation.concat(name, OLD_VARIABLE_EXCEPTION_SUFFIX);
+								String nameString = String.valueOf(name);
+								OldExpression.DistinctExpression distinctExpression = oldExpressions.get(nameString);
+								long pos = (oldExpression.sourceStart << 32) + oldExpression.sourceEnd;
+								if (distinctExpression == null) {
+									distinctExpression = new OldExpression.DistinctExpression();
+									oldExpressions.put(nameString, distinctExpression);
+									
+									distinctExpression.exceptionDeclaration = new LocalDeclaration(exceptionName, oldExpression.sourceStart, oldExpression.sourceEnd);
+									distinctExpression.exceptionDeclaration.type = javaLangThrowable();
+									distinctExpression.exceptionDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
+									statementsForBlock.add(distinctExpression.exceptionDeclaration);
+									distinctExpression.outerDeclaration = new LocalDeclaration(name, oldExpression.sourceStart, oldExpression.sourceEnd);
+									distinctExpression.outerDeclaration.type = javaLangObject();
+									distinctExpression.outerDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
+									statementsForBlock.add(distinctExpression.outerDeclaration);
+
+									Block tryBlock = new Block(1);
+									distinctExpression.innerDeclaration = new LocalDeclaration(innerName, oldExpression.sourceStart, oldExpression.sourceEnd);
+									distinctExpression.innerDeclaration.type = new SingleTypeReference("var".toCharArray(), pos); //$NON-NLS-1$
+									distinctExpression.innerDeclaration.initialization = oldExpression.expression;
+									tryBlock.statements = new Statement[] {
+											distinctExpression.innerDeclaration,
+											new Assignment(new SingleNameReference(name, pos), new SingleNameReference(innerName, pos), oldExpression.sourceEnd)
+									};
+									
+									char[] catchArgumentName = "$exception".toCharArray(); //$NON-NLS-1$
+									Argument catchArgument = new Argument(catchArgumentName, pos, javaLangThrowable(), 0);
+									Block catchBlock = new Block(0);
+									catchBlock.statements = new Statement[] {
+											new Assignment(new SingleNameReference(exceptionName, pos), new SingleNameReference(catchArgumentName, pos), oldExpression.sourceEnd)
+									};
+									
+									TryStatement tryStatement = new TryStatement();
+									tryStatement.tryBlock = tryBlock;
+									tryStatement.catchArguments = new Argument[] {catchArgument};
+									tryStatement.catchBlocks = new Block[] {catchBlock};
+									statementsForBlock.add(tryStatement);
+								}
+								oldExpression.distinctExpression = distinctExpression;
+								oldExpression.reference = new SingleNameReference(name, pos);
+								oldExpression.exceptionReference = new SingleNameReference(exceptionName, pos);
+								return false;
+							}
+							
+						}, this.method.scope);
+					}
+					blockDeclarationsCount += 2 * oldExpressions.size();
 				}
+
+				MessageSend createLogger = new MessageSend();
+				createLogger.receiver = javaUtilLoggingLogger();
+				createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
+				createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+				
+				MessageSend generateLoggerMessage = new MessageSend();
+				generateLoggerMessage.receiver = createLogger;
+				generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
+				generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, this.method.sourceStart, this.method.sourceEnd, 0)};
+				
+				Expression condition = new InstanceOfExpression(
+						new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
+						javaLangRuntimeException());
+				Block thenBlock = new Block(0);
+				thenBlock.statements = new Statement[]{
+						generateLoggerMessage,
+						new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
+				postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
 				
 				LocalDeclaration resultDeclaration = null;
 				if (this.method instanceof MethodDeclaration) {
@@ -580,7 +579,11 @@ public class FormalSpecification {
 				for (int i = 0; i < postconditionsLength; i++) {
 					Expression e = this.postconditions[i];
 					postconditionBlockStatements.add(new AssertStatement(new StringLiteral(postconditionAssertionMessage, e.sourceStart, e.sourceEnd, 0), e, e.sourceStart));
-				}
+				}	
+				for (int i = 0; i < this.mayThrowConditions.length; i++) {
+					Expression e = this.mayThrowConditions[i];
+					postconditionBlockStatements.add(new AssertStatement(new StringLiteral(maythrowconditionAssertionMessage, e.sourceStart, e.sourceEnd, 0), e, e.sourceStart));
+				}	
 				Block postconditionBlock = new Block(postconditionBlockDeclarationsCount);
 				postconditionBlock.statements = new Statement[postconditionBlockStatements.size()];
 				postconditionBlockStatements.toArray(postconditionBlock.statements);
