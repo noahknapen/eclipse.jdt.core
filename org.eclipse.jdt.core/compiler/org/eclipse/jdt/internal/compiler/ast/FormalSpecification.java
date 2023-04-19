@@ -244,9 +244,83 @@ public class FormalSpecification {
 		if (this.method.ignoreFurtherInvestigation)
 			return;
 		
-		if (this.mayThrowConditions != null)
-			for (Expression e : this.mayThrowConditions)
-				e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
+		ArrayList<Statement> statementsForBlock = new ArrayList<>();
+		HashMap<String, OldExpression.DistinctExpression> oldExpressions = new HashMap<>();
+		int blockDeclarationsCount = 0;
+		this.statementsForMethodBody = new ArrayList<>();
+		
+		if (this.mayThrowConditions != null) {
+			for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
+				Expression e = this.mayThrowConditions[i];
+				//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
+				
+				this.mayThrowConditions[i] = new MayThrowExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
+		
+				this.mayThrowConditions[i].traverse(new ASTVisitor() {
+
+					@Override
+					public boolean visit(OldExpression oldExpression, BlockScope blockScope) {
+						char[] name = Arrays.copyOf(oldExpression.source, oldExpression.source.length);
+						for (int i = 0; i < name.length; i++) { // JVMS 4.2.2 field names cannot contain . ; [ / .
+							switch (name[i]) {
+								case '.': name[i] = '\u2024'; break; // ONE DOT LEADER
+								case ';': name[i] = '\u204f'; break; // REVERSED SEMICOLON 
+								case '[': name[i] = '\u298b'; break; // LEFT SQUARE BRACKET WITH UNDERBAR
+								case ']': name[i] = '\u298c'; break; // RIGHT SQUARE BRACKET WITH UNDERBAR
+								case '/': name[i] = '\u2afd'; break; // DOUBLE SOLIDUS OPERATOR
+							}
+						}
+						char[] innerName = CharOperation.concat(name, OLD_VARIABLE_INNER_SUFFIX);
+						char[] exceptionName = CharOperation.concat(name, OLD_VARIABLE_EXCEPTION_SUFFIX);
+						String nameString = String.valueOf(name);
+						OldExpression.DistinctExpression distinctExpression = oldExpressions.get(nameString);
+						long pos = (oldExpression.sourceStart << 32) + oldExpression.sourceEnd;
+						if (distinctExpression == null) {
+							distinctExpression = new OldExpression.DistinctExpression();
+							oldExpressions.put(nameString, distinctExpression);
+							
+							distinctExpression.exceptionDeclaration = new LocalDeclaration(exceptionName, oldExpression.sourceStart, oldExpression.sourceEnd);
+							distinctExpression.exceptionDeclaration.type = javaLangThrowable();
+							distinctExpression.exceptionDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
+							statementsForBlock.add(distinctExpression.exceptionDeclaration);
+							distinctExpression.outerDeclaration = new LocalDeclaration(name, oldExpression.sourceStart, oldExpression.sourceEnd);
+							distinctExpression.outerDeclaration.type = javaLangObject();
+							distinctExpression.outerDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
+							statementsForBlock.add(distinctExpression.outerDeclaration);
+
+							Block tryBlock = new Block(1);
+							distinctExpression.innerDeclaration = new LocalDeclaration(innerName, oldExpression.sourceStart, oldExpression.sourceEnd);
+							distinctExpression.innerDeclaration.type = new SingleTypeReference("var".toCharArray(), pos); //$NON-NLS-1$
+							distinctExpression.innerDeclaration.initialization = oldExpression.expression;
+							tryBlock.statements = new Statement[] {
+									distinctExpression.innerDeclaration,
+									new Assignment(new SingleNameReference(name, pos), new SingleNameReference(innerName, pos), oldExpression.sourceEnd)
+							};
+							
+							char[] catchArgumentName = "$exception".toCharArray(); //$NON-NLS-1$
+							Argument catchArgument = new Argument(catchArgumentName, pos, javaLangThrowable(), 0);
+							Block catchBlock = new Block(0);
+							catchBlock.statements = new Statement[] {
+									new Assignment(new SingleNameReference(exceptionName, pos), new SingleNameReference(catchArgumentName, pos), oldExpression.sourceEnd)
+							};
+							
+							TryStatement tryStatement = new TryStatement();
+							tryStatement.tryBlock = tryBlock;
+							tryStatement.catchArguments = new Argument[] {catchArgument};
+							tryStatement.catchBlocks = new Block[] {catchBlock};
+							statementsForBlock.add(tryStatement);
+						}
+						oldExpression.distinctExpression = distinctExpression;
+						oldExpression.reference = new SingleNameReference(name, pos);
+						oldExpression.exceptionReference = new SingleNameReference(exceptionName, pos);
+						return false;
+					}
+					
+				}, this.method.scope);
+			}
+			blockDeclarationsCount += 2 * oldExpressions.size();
+		}
+		
 		
 		resolveEffectClause(this.inspectsExpressions);
 		resolveEffectClause(this.mutatesExpressions);
@@ -302,10 +376,7 @@ public class FormalSpecification {
 				preconditionLambdaCall.receiver = new CastExpression(this.preconditionLambda, preconditionLambdaType);
 			}
 
-			ArrayList<Statement> statementsForBlock = new ArrayList<>();
-			HashMap<String, OldExpression.DistinctExpression> oldExpressions = new HashMap<>();
-			int blockDeclarationsCount = 0;
-			this.statementsForMethodBody = new ArrayList<>();
+			
 			if (this.preconditions != null) {
 				// Insert assert statements into method body.
 				for (int i = 0; i < this.preconditions.length; i++) {
