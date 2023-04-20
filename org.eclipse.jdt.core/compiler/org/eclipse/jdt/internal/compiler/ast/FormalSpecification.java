@@ -512,20 +512,12 @@ public class FormalSpecification {
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
 					Statement mayThrowThenBlock = new EmptyStatement(0, 0);
+					MessageSend loggerMessage = generateSevereLoggerMessage(maythrowconditionAssertionMessage);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						Expression e = this.mayThrowConditions[i];
-						MessageSend createLogger = new MessageSend();
-						createLogger.receiver = javaUtilLoggingLogger();
-						createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
-						createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
-						
-						MessageSend generateLoggerMessage = new MessageSend();
-						generateLoggerMessage.receiver = createLogger;
-						generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
-						generateLoggerMessage.arguments = new Expression[] {new StringLiteral(maythrowconditionAssertionMessage, this.method.sourceStart, this.method.sourceEnd, 0)};
 						Block mayThrowElseBlock = new Block(0);
 						mayThrowElseBlock.statements = new Statement[] {
-								generateLoggerMessage,
+								loggerMessage,
 								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd)
 						};
 						Statement tempStatement = new IfStatement(e, mayThrowThenBlock, mayThrowElseBlock, e.sourceStart, e.sourceEnd);
@@ -567,22 +559,12 @@ public class FormalSpecification {
 					}
 				}
 				
-				MessageSend createLogger = new MessageSend();
-				createLogger.receiver = javaUtilLoggingLogger();
-				createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
-				createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
-				
-				MessageSend generateLoggerMessage = new MessageSend();
-				generateLoggerMessage.receiver = createLogger;
-				generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
-				generateLoggerMessage.arguments = new Expression[] {new StringLiteral(thrownExceptionNotformal, this.method.sourceStart, this.method.sourceEnd, 0)};
-				
 				Expression condition = new InstanceOfExpression(
 						new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 						javaLangRuntimeException());
 				Block thenBlock = new Block(0);
 				thenBlock.statements = new Statement[]{
-						generateLoggerMessage,
+						generateSevereLoggerMessage(thrownExceptionNotformal),
 						new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
 				postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
 				
@@ -1024,6 +1006,20 @@ public class FormalSpecification {
 				if (e instanceof ThisReference)
 					return e.sourceStart;
 		return mutatesThisSourceLocation();
+	}
+	
+	private MessageSend generateSevereLoggerMessage(char[] msg) {
+		MessageSend createLogger = new MessageSend();
+		createLogger.receiver = javaUtilLoggingLogger();
+		createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
+		createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+		
+		MessageSend generateLoggerMessage = new MessageSend();
+		generateLoggerMessage.receiver = createLogger;
+		generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
+		generateLoggerMessage.arguments = new Expression[] {new StringLiteral(msg, this.method.sourceStart, this.method.sourceEnd, 0)};
+		return generateLoggerMessage;
+
 	}
 
 }
