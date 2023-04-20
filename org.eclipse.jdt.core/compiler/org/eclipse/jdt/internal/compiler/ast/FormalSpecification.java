@@ -511,16 +511,15 @@ public class FormalSpecification {
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
-					Statement statement = new EmptyStatement(0, 0);
 					MessageSend loggerMessage = generateSevereLoggerMessage(maythrowconditionAssertionMessage);
+					Block noMayThrowConditionsSatisfiedBlock = new Block(0);
+					noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {loggerMessage,
+							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), this.method.sourceStart, this.method.sourceEnd)
+					};
+					Statement statement = noMayThrowConditionsSatisfiedBlock;
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						Expression e = this.mayThrowConditions[i];
-						Block mayThrowElseBlock = new Block(0);
-						mayThrowElseBlock.statements = new Statement[] {
-								loggerMessage,
-								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd)
-						};
-						statement = new IfStatement(e, statement, mayThrowElseBlock, e.sourceStart, e.sourceEnd);
+						statement = new IfStatement(e, new EmptyStatement(0,0), statement, e.sourceStart, e.sourceEnd);
 					}	
 					postconditionBlockStatements.add(statement);
 				}	
