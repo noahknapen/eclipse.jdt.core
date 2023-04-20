@@ -332,6 +332,9 @@ public class FormalSpecification {
 						statement = thenStatement;
 						break;
 					}
+					else if (e instanceof FalseLiteral) {
+						continue;
+					}
 					else
 						statement = new IfStatement(e, thenStatement, statement, e.sourceStart, e.sourceEnd);
 				}
