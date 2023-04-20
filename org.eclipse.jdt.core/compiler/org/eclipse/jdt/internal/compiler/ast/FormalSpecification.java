@@ -328,7 +328,12 @@ public class FormalSpecification {
 									new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
 									createIntLiteral(i, e.sourceStart, e.sourceEnd),
 									e.sourceEnd);
-					statement = new IfStatement(e, thenStatement, statement, e.sourceStart, e.sourceEnd);
+					if (e instanceof TrueLiteral) {
+						statement = thenStatement;
+						break;
+					}
+					else
+						statement = new IfStatement(e, thenStatement, statement, e.sourceStart, e.sourceEnd);
 				}
 				statementsForBlock.add(statement);
 			}
