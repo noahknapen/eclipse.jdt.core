@@ -510,29 +510,27 @@ public class FormalSpecification {
 						}, this.method.scope);
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
-				}
-
-				Statement mayThrowElseBlock = new EmptyStatement(0, 0);
-				for (int i = 0; i < this.mayThrowConditions.length; i++) {
-					Expression e = this.mayThrowConditions[i];
-					MessageSend createLogger = new MessageSend();
-					createLogger.receiver = javaUtilLoggingLogger();
-					createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
-					createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
 					
-					MessageSend generateLoggerMessage = new MessageSend();
-					generateLoggerMessage.receiver = createLogger;
-					generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
-					generateLoggerMessage.arguments = new Expression[] {new StringLiteral(maythrowconditionAssertionMessage, this.method.sourceStart, this.method.sourceEnd, 0)};
-					Block mayThrowThenBlock = new Block(0);
-					mayThrowThenBlock.statements = new Statement[] {
-							generateLoggerMessage,
-							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd)
-					};
-					
-					postconditionBlockStatements.add(new IfStatement(e, mayThrowThenBlock, mayThrowElseBlock, e.sourceStart, e.sourceEnd));
-					
-					//postconditionBlockStatements.add(new AssertStatement(new StringLiteral(maythrowconditionAssertionMessage, e.sourceStart, e.sourceEnd, 0), e, e.sourceStart));
+					Statement mayThrowElseBlock = new EmptyStatement(0, 0);
+					for (int i = 0; i < this.mayThrowConditions.length; i++) {
+						Expression e = this.mayThrowConditions[i];
+						MessageSend createLogger = new MessageSend();
+						createLogger.receiver = javaUtilLoggingLogger();
+						createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
+						createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+						
+						MessageSend generateLoggerMessage = new MessageSend();
+						generateLoggerMessage.receiver = createLogger;
+						generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
+						generateLoggerMessage.arguments = new Expression[] {new StringLiteral(maythrowconditionAssertionMessage, this.method.sourceStart, this.method.sourceEnd, 0)};
+						Block mayThrowThenBlock = new Block(0);
+						mayThrowThenBlock.statements = new Statement[] {
+								generateLoggerMessage,
+								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd)
+						};
+						
+						postconditionBlockStatements.add(new IfStatement(e, mayThrowThenBlock, mayThrowElseBlock, e.sourceStart, e.sourceEnd));
+					}	
 				}	
 				
 				if (this.throwsConditions != null) {
