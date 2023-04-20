@@ -511,7 +511,7 @@ public class FormalSpecification {
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
-					Statement mayThrowThenBlock = new EmptyStatement(0, 0);
+					Statement statement = new EmptyStatement(0, 0);
 					MessageSend loggerMessage = generateSevereLoggerMessage(maythrowconditionAssertionMessage);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						Expression e = this.mayThrowConditions[i];
@@ -520,10 +520,9 @@ public class FormalSpecification {
 								loggerMessage,
 								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd)
 						};
-						Statement tempStatement = new IfStatement(e, mayThrowThenBlock, mayThrowElseBlock, e.sourceStart, e.sourceEnd);
-						postconditionBlockStatements.add(tempStatement);
-						mayThrowThenBlock = tempStatement;
+						statement = new IfStatement(e, statement, mayThrowElseBlock, e.sourceStart, e.sourceEnd);
 					}	
+					postconditionBlockStatements.add(statement);
 				}	
 				
 				if (this.throwsConditions != null) {
