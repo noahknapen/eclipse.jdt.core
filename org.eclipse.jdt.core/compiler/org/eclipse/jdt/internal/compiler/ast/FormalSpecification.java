@@ -328,7 +328,15 @@ public class FormalSpecification {
 									new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
 									createIntLiteral(i, e.sourceStart, e.sourceEnd),
 									e.sourceEnd);
-					statement = new IfStatement(e, thenStatement, statement, e.sourceStart, e.sourceEnd);
+					if (e instanceof TrueLiteral) {
+						statement = thenStatement;
+						break;
+					}
+					else if (e instanceof FalseLiteral) {
+						continue;
+					}
+					else
+						statement = new IfStatement(e, thenStatement, statement, e.sourceStart, e.sourceEnd);
 				}
 				statementsForBlock.add(statement);
 			}
@@ -337,7 +345,10 @@ public class FormalSpecification {
 				this.postconditionMethodCall.receiver = new SingleNameReference(POSTCONDITION_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
 				this.postconditionMethodCall.selector = "accept".toCharArray(); //$NON-NLS-1$
 				if (this.method.binding.returnType.id == TypeIds.T_void && !(this.method instanceof ConstructorDeclaration))
-					this.postconditionMethodCall.arguments = new Expression[] {new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0)};
+					if (this.throwsConditions == null)
+						this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0)};
+					else
+						this.postconditionMethodCall.arguments = new Expression[] {new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0)};
 				else
 					this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0), new NullLiteral(0, 0)};
 				int postconditionsLength = this.postconditions == null ? 0 : this.postconditions.length;
@@ -453,18 +464,26 @@ public class FormalSpecification {
 									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 									this.throwsExceptionTypeNames[i]
 							);
-							AllocationExpression allocation = new AllocationExpression();
-							allocation.type = javaLangAssertionError();
-							allocation.arguments = new Expression[] {
-									new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
-									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceEnd)
-							};
-							allocation.sourceStart = e.sourceStart;
-							allocation.sourceEnd = e.sourceEnd;
+							MessageSend createLogger = new MessageSend();
+							createLogger.receiver = javaUtilLoggingLogger();
+							createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
+							createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+							
+							MessageSend generateLoggerMessage = new MessageSend();
+							generateLoggerMessage.receiver = createLogger;
+							generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
+							generateLoggerMessage.arguments = new Expression[] {new StringLiteral(throwsAssertionMessage, this.method.sourceStart, this.method.sourceEnd, 0)};
+							
+							Expression exceptionNotNull = new EqualExpression(
+									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
+									new NullLiteral(0, 0),
+									OperatorIds.NOT_EQUAL);
+							
 							thenBlock.statements = new Statement[] {
 									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									new ThrowStatement(allocation, e.sourceStart, e.sourceEnd)
-							};
+									generateLoggerMessage,
+									new IfStatement(exceptionNotNull, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd)};
+
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
 						}
 					}
