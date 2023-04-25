@@ -404,9 +404,8 @@ public class FormalSpecification {
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
-					MessageSend loggerMessage = generateSevereLoggerMessage(maythrowconditionAssertionMessage);
 					Block noMayThrowConditionsSatisfiedBlock = new Block(0);
-					noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {loggerMessage,
+					noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {generateSevereLoggerMessage(maythrowconditionAssertionMessage),
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), this.method.sourceStart, this.method.sourceEnd)
 					};
 					Statement statement = new EmptyStatement(0,0);
@@ -448,15 +447,6 @@ public class FormalSpecification {
 									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 									this.throwsExceptionTypeNames[i]
 							);
-							MessageSend createLogger = new MessageSend();
-							createLogger.receiver = javaUtilLoggingLogger();
-							createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
-							createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
-							
-							MessageSend generateLoggerMessage = new MessageSend();
-							generateLoggerMessage.receiver = createLogger;
-							generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
-							generateLoggerMessage.arguments = new Expression[] {new StringLiteral(throwsAssertionMessage, this.method.sourceStart, this.method.sourceEnd, 0)};
 							
 							Expression exceptionNotNull = new EqualExpression(
 									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
@@ -465,7 +455,7 @@ public class FormalSpecification {
 							
 							thenBlock.statements = new Statement[] {
 									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									generateLoggerMessage,
+									generateSevereLoggerMessage(throwsAssertionMessage),
 									new IfStatement(exceptionNotNull, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd)};
 
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
