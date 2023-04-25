@@ -4969,7 +4969,12 @@ private Annotation[] consumeAnnotations(AbstractMethodDeclaration md) {
 							if (clause.tagArgument == null)
 								this.problemReporter().throwShouldSpecifyExceptionType(clause);
 							break;
-						case MAY_THROW: clause.addExpression(this, mayThrowConditions); mayThrowExceptionTypeNames.add(clause.tagArgument); break;
+						case MAY_THROW: 
+							clause.addExpression(this, mayThrowConditions);
+							mayThrowExceptionTypeNames.add(clause.tagArgument);
+							if (clause.tagArgument == null)
+								this.problemReporter().mayThrowShouldSpecifyExceptionType(clause);
+							break;
 						case POST: clause.addExpression(this, postconditions); break;
 						case INSPECTS:
 							if (inspectsExpressions == null)

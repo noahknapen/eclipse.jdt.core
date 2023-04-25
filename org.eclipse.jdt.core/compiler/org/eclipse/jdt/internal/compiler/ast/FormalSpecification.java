@@ -29,7 +29,7 @@ public class FormalSpecification {
 
 	private static final char[] preconditionAssertionMessage = "Precondition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] postconditionAssertionMessage = "Postcondition does not hold".toCharArray(); //$NON-NLS-1$
-	private static final char[] maythrowconditionAssertionMessage = "@may_throw condition does not hold".toCharArray(); //$NON-NLS-1$
+	private static final char[] maythrowconditionAssertionMessage = "@may_throw condition does not hold for the thrown exception type".toCharArray(); //$NON-NLS-1$
 	private static final char[] throwsAssertionMessage = "@throws condition holds but specified exception type not thrown".toCharArray(); //$NON-NLS-1$
 	private static final char[] thrownExceptionNotformal = "The thrown exception was not specified in the formal specification".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
@@ -352,67 +352,8 @@ public class FormalSpecification {
 					this.postconditionMethodCall.arguments = new Expression[] {new NullLiteral(0, 0), new NullLiteral(0, 0)};
 				int postconditionsLength = this.postconditions == null ? 0 : this.postconditions.length;
 				for (int i = 0; i < postconditionsLength; i++) {
-					this.postconditions[i].traverse(new ASTVisitor() {
-
-						@Override
-						public boolean visit(OldExpression oldExpression, BlockScope blockScope) {
-							char[] name = Arrays.copyOf(oldExpression.source, oldExpression.source.length);
-							for (int i = 0; i < name.length; i++) { // JVMS 4.2.2 field names cannot contain . ; [ / .
-								switch (name[i]) {
-									case '.': name[i] = '\u2024'; break; // ONE DOT LEADER
-									case ';': name[i] = '\u204f'; break; // REVERSED SEMICOLON 
-									case '[': name[i] = '\u298b'; break; // LEFT SQUARE BRACKET WITH UNDERBAR
-									case ']': name[i] = '\u298c'; break; // RIGHT SQUARE BRACKET WITH UNDERBAR
-									case '/': name[i] = '\u2afd'; break; // DOUBLE SOLIDUS OPERATOR
-								}
-							}
-							char[] innerName = CharOperation.concat(name, OLD_VARIABLE_INNER_SUFFIX);
-							char[] exceptionName = CharOperation.concat(name, OLD_VARIABLE_EXCEPTION_SUFFIX);
-							String nameString = String.valueOf(name);
-							OldExpression.DistinctExpression distinctExpression = oldExpressions.get(nameString);
-							long pos = (oldExpression.sourceStart << 32) + oldExpression.sourceEnd;
-							if (distinctExpression == null) {
-								distinctExpression = new OldExpression.DistinctExpression();
-								oldExpressions.put(nameString, distinctExpression);
-								
-								distinctExpression.exceptionDeclaration = new LocalDeclaration(exceptionName, oldExpression.sourceStart, oldExpression.sourceEnd);
-								distinctExpression.exceptionDeclaration.type = javaLangThrowable();
-								distinctExpression.exceptionDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
-								statementsForBlock.add(distinctExpression.exceptionDeclaration);
-								distinctExpression.outerDeclaration = new LocalDeclaration(name, oldExpression.sourceStart, oldExpression.sourceEnd);
-								distinctExpression.outerDeclaration.type = javaLangObject();
-								distinctExpression.outerDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
-								statementsForBlock.add(distinctExpression.outerDeclaration);
-
-								Block tryBlock = new Block(1);
-								distinctExpression.innerDeclaration = new LocalDeclaration(innerName, oldExpression.sourceStart, oldExpression.sourceEnd);
-								distinctExpression.innerDeclaration.type = new SingleTypeReference("var".toCharArray(), pos); //$NON-NLS-1$
-								distinctExpression.innerDeclaration.initialization = oldExpression.expression;
-								tryBlock.statements = new Statement[] {
-										distinctExpression.innerDeclaration,
-										new Assignment(new SingleNameReference(name, pos), new SingleNameReference(innerName, pos), oldExpression.sourceEnd)
-								};
-								
-								char[] catchArgumentName = "$exception".toCharArray(); //$NON-NLS-1$
-								Argument catchArgument = new Argument(catchArgumentName, pos, javaLangThrowable(), 0);
-								Block catchBlock = new Block(0);
-								catchBlock.statements = new Statement[] {
-										new Assignment(new SingleNameReference(exceptionName, pos), new SingleNameReference(catchArgumentName, pos), oldExpression.sourceEnd)
-								};
-								
-								TryStatement tryStatement = new TryStatement();
-								tryStatement.tryBlock = tryBlock;
-								tryStatement.catchArguments = new Argument[] {catchArgument};
-								tryStatement.catchBlocks = new Block[] {catchBlock};
-								statementsForBlock.add(tryStatement);
-							}
-							oldExpression.distinctExpression = distinctExpression;
-							oldExpression.reference = new SingleNameReference(name, pos);
-							oldExpression.exceptionReference = new SingleNameReference(exceptionName, pos);
-							return false;
-						}
-						
-					}, this.method.scope);
+					ASTVisitor astVisitor = this.generateOldExpressionASTVisitor(oldExpressions, statementsForBlock);
+					this.postconditions[i].traverse(astVisitor, this.method.scope);
 				}
 				blockDeclarationsCount += 2 * oldExpressions.size();
 				
@@ -448,74 +389,18 @@ public class FormalSpecification {
 					this.method.statements = new Statement[] {outerBlock};
 					this.method.explicitDeclarations = 0;
 				}
-
+				
 				if (this.mayThrowConditions != null) {
 					for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
+						if (this.mayThrowExceptionTypeNames[i] == null) {
+							continue;
+						}
 						Expression e = this.mayThrowConditions[i];
 						//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
 						
-						this.mayThrowConditions[i] = new MayThrowExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
-						this.mayThrowConditions[i].traverse(new ASTVisitor() {
-
-							@Override
-							public boolean visit(OldExpression oldExpression, BlockScope blockScope) {
-								char[] name = Arrays.copyOf(oldExpression.source, oldExpression.source.length);
-								for (int i = 0; i < name.length; i++) { // JVMS 4.2.2 field names cannot contain . ; [ / .
-									switch (name[i]) {
-										case '.': name[i] = '\u2024'; break; // ONE DOT LEADER
-										case ';': name[i] = '\u204f'; break; // REVERSED SEMICOLON 
-										case '[': name[i] = '\u298b'; break; // LEFT SQUARE BRACKET WITH UNDERBAR
-										case ']': name[i] = '\u298c'; break; // RIGHT SQUARE BRACKET WITH UNDERBAR
-										case '/': name[i] = '\u2afd'; break; // DOUBLE SOLIDUS OPERATOR
-									}
-								}
-								char[] innerName = CharOperation.concat(name, OLD_VARIABLE_INNER_SUFFIX);
-								char[] exceptionName = CharOperation.concat(name, OLD_VARIABLE_EXCEPTION_SUFFIX);
-								String nameString = String.valueOf(name);
-								OldExpression.DistinctExpression distinctExpression = oldExpressions.get(nameString);
-								long pos = (oldExpression.sourceStart << 32) + oldExpression.sourceEnd;
-								if (distinctExpression == null) {
-									distinctExpression = new OldExpression.DistinctExpression();
-									oldExpressions.put(nameString, distinctExpression);
-									
-									distinctExpression.exceptionDeclaration = new LocalDeclaration(exceptionName, oldExpression.sourceStart, oldExpression.sourceEnd);
-									distinctExpression.exceptionDeclaration.type = javaLangThrowable();
-									distinctExpression.exceptionDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
-									statementsForBlock.add(distinctExpression.exceptionDeclaration);
-									distinctExpression.outerDeclaration = new LocalDeclaration(name, oldExpression.sourceStart, oldExpression.sourceEnd);
-									distinctExpression.outerDeclaration.type = javaLangObject();
-									distinctExpression.outerDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
-									statementsForBlock.add(distinctExpression.outerDeclaration);
-
-									Block tryBlock = new Block(1);
-									distinctExpression.innerDeclaration = new LocalDeclaration(innerName, oldExpression.sourceStart, oldExpression.sourceEnd);
-									distinctExpression.innerDeclaration.type = new SingleTypeReference("var".toCharArray(), pos); //$NON-NLS-1$
-									distinctExpression.innerDeclaration.initialization = oldExpression.expression;
-									tryBlock.statements = new Statement[] {
-											distinctExpression.innerDeclaration,
-											new Assignment(new SingleNameReference(name, pos), new SingleNameReference(innerName, pos), oldExpression.sourceEnd)
-									};
-									
-									char[] catchArgumentName = "$exception".toCharArray(); //$NON-NLS-1$
-									Argument catchArgument = new Argument(catchArgumentName, pos, javaLangThrowable(), 0);
-									Block catchBlock = new Block(0);
-									catchBlock.statements = new Statement[] {
-											new Assignment(new SingleNameReference(exceptionName, pos), new SingleNameReference(catchArgumentName, pos), oldExpression.sourceEnd)
-									};
-									
-									TryStatement tryStatement = new TryStatement();
-									tryStatement.tryBlock = tryBlock;
-									tryStatement.catchArguments = new Argument[] {catchArgument};
-									tryStatement.catchBlocks = new Block[] {catchBlock};
-									statementsForBlock.add(tryStatement);
-								}
-								oldExpression.distinctExpression = distinctExpression;
-								oldExpression.reference = new SingleNameReference(name, pos);
-								oldExpression.exceptionReference = new SingleNameReference(exceptionName, pos);
-								return false;
-							}
-							
-						}, this.method.scope);
+						this.mayThrowConditions[i] = new OldExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
+						ASTVisitor astVisitor = this.generateOldExpressionASTVisitor(oldExpressions, statementsForBlock);
+						this.mayThrowConditions[i].traverse(astVisitor, this.method.scope);
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
@@ -524,10 +409,25 @@ public class FormalSpecification {
 					noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {loggerMessage,
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), this.method.sourceStart, this.method.sourceEnd)
 					};
-					Statement statement = noMayThrowConditionsSatisfiedBlock;
+					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
+						if (this.mayThrowExceptionTypeNames[i] == null) {
+							continue;
+						}
+						// Put an if-statement with expression instanceof exception. When true, check if the condition for that exception is satisfied.
+						// When no instanceof statement is true, simply continue execution (it is MAY throw, not MUST throw so is legal to not specify an exception)
+						// When instanceof is true and condition is satisfied, do NOT throw caught exception as the @throws clauses have to be checked too
+						// When instanceof is true and condition is NOT satisfied, generate a logger message and throw exception
 						Expression e = this.mayThrowConditions[i];
-						statement = new IfStatement(e, new EmptyStatement(0,0), statement, e.sourceStart, e.sourceEnd);
+						Expression condition = new InstanceOfExpression(
+								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
+								this.mayThrowExceptionTypeNames[i]
+						);
+						Block thenBlock = new Block(0);
+						thenBlock.statements = new Statement[] {
+							new IfStatement(e, new EmptyStatement(0,0), noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
+						};
+						statement = new IfStatement(condition, thenBlock, statement, e.sourceStart, e.sourceEnd);
 					}	
 					postconditionBlockStatements.add(statement);
 				}	
@@ -1033,6 +933,70 @@ public class FormalSpecification {
 		generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
 		generateLoggerMessage.arguments = new Expression[] {new StringLiteral(msg, this.method.sourceStart, this.method.sourceEnd, 0)};
 		return generateLoggerMessage;
+
+	}
+	
+	private ASTVisitor generateOldExpressionASTVisitor(HashMap<String, OldExpression.DistinctExpression> oldExpressions, ArrayList<Statement> statementsForBlock) {
+		return new ASTVisitor() {
+			@Override
+			public boolean visit(OldExpression oldExpression, BlockScope blockScope) {
+				char[] name = Arrays.copyOf(oldExpression.source, oldExpression.source.length);
+				for (int i = 0; i < name.length; i++) { // JVMS 4.2.2 field names cannot contain . ; [ / .
+					switch (name[i]) {
+						case '.': name[i] = '\u2024'; break; // ONE DOT LEADER
+						case ';': name[i] = '\u204f'; break; // REVERSED SEMICOLON 
+						case '[': name[i] = '\u298b'; break; // LEFT SQUARE BRACKET WITH UNDERBAR
+						case ']': name[i] = '\u298c'; break; // RIGHT SQUARE BRACKET WITH UNDERBAR
+						case '/': name[i] = '\u2afd'; break; // DOUBLE SOLIDUS OPERATOR
+					}
+				}
+				char[] innerName = CharOperation.concat(name, OLD_VARIABLE_INNER_SUFFIX);
+				char[] exceptionName = CharOperation.concat(name, OLD_VARIABLE_EXCEPTION_SUFFIX);
+				String nameString = String.valueOf(name);
+				OldExpression.DistinctExpression distinctExpression = oldExpressions.get(nameString);
+				long pos = (oldExpression.sourceStart << 32) + oldExpression.sourceEnd;
+				if (distinctExpression == null) {
+					distinctExpression = new OldExpression.DistinctExpression();
+					oldExpressions.put(nameString, distinctExpression);
+					
+					distinctExpression.exceptionDeclaration = new LocalDeclaration(exceptionName, oldExpression.sourceStart, oldExpression.sourceEnd);
+					distinctExpression.exceptionDeclaration.type = javaLangThrowable();
+					distinctExpression.exceptionDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
+					statementsForBlock.add(distinctExpression.exceptionDeclaration);
+					distinctExpression.outerDeclaration = new LocalDeclaration(name, oldExpression.sourceStart, oldExpression.sourceEnd);
+					distinctExpression.outerDeclaration.type = javaLangObject();
+					distinctExpression.outerDeclaration.initialization = new NullLiteral(oldExpression.sourceStart, oldExpression.sourceEnd);
+					statementsForBlock.add(distinctExpression.outerDeclaration);
+
+					Block tryBlock = new Block(1);
+					distinctExpression.innerDeclaration = new LocalDeclaration(innerName, oldExpression.sourceStart, oldExpression.sourceEnd);
+					distinctExpression.innerDeclaration.type = new SingleTypeReference("var".toCharArray(), pos); //$NON-NLS-1$
+					distinctExpression.innerDeclaration.initialization = oldExpression.expression;
+					tryBlock.statements = new Statement[] {
+							distinctExpression.innerDeclaration,
+							new Assignment(new SingleNameReference(name, pos), new SingleNameReference(innerName, pos), oldExpression.sourceEnd)
+					};
+					
+					char[] catchArgumentName = "$exception".toCharArray(); //$NON-NLS-1$
+					Argument catchArgument = new Argument(catchArgumentName, pos, javaLangThrowable(), 0);
+					Block catchBlock = new Block(0);
+					catchBlock.statements = new Statement[] {
+							new Assignment(new SingleNameReference(exceptionName, pos), new SingleNameReference(catchArgumentName, pos), oldExpression.sourceEnd)
+					};
+					
+					TryStatement tryStatement = new TryStatement();
+					tryStatement.tryBlock = tryBlock;
+					tryStatement.catchArguments = new Argument[] {catchArgument};
+					tryStatement.catchBlocks = new Block[] {catchBlock};
+					statementsForBlock.add(tryStatement);
+				}
+				oldExpression.distinctExpression = distinctExpression;
+				oldExpression.reference = new SingleNameReference(name, pos);
+				oldExpression.exceptionReference = new SingleNameReference(exceptionName, pos);
+				return false;
+			}
+			
+		};
 
 	}
 
