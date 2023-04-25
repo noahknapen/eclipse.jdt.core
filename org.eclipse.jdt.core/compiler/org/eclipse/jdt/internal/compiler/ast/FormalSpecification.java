@@ -446,7 +446,7 @@ public class FormalSpecification {
 						Expression e = this.mayThrowConditions[i];
 						//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
 						
-						this.mayThrowConditions[i] = new MayThrowExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
+						this.mayThrowConditions[i] = new OldExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
 						this.mayThrowConditions[i].traverse(new ASTVisitor() {
 
 							@Override
