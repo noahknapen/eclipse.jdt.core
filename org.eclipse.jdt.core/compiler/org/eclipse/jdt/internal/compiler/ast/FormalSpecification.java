@@ -381,9 +381,12 @@ public class FormalSpecification {
 					this.method.statements = new Statement[] {outerBlock};
 					this.method.explicitDeclarations = 0;
 				}
-
+				
 				if (this.mayThrowConditions != null) {
 					for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
+						if (this.mayThrowExceptionTypeNames[i] == null) {
+							continue;
+						}
 						Expression e = this.mayThrowConditions[i];
 						//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
 						
@@ -398,10 +401,25 @@ public class FormalSpecification {
 					noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {loggerMessage,
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), this.method.sourceStart, this.method.sourceEnd)
 					};
-					Statement statement = noMayThrowConditionsSatisfiedBlock;
+					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
+						if (this.mayThrowExceptionTypeNames[i] == null) {
+							continue;
+						}
+						// Put an if-statement with expression instanceof exception. When true, check if the condition for that exception is satisfied.
+						// When no instanceof statement is true, simply continue execution (it is MAY throw, not MUST throw so is legal to not specify an exception)
+						// When instanceof is true and condition is satisfied, do NOT throw caught exception as the @throws clauses have to be checked too
+						// When instanceof is true and condition is NOT satisfied, generate a logger message and throw exception
 						Expression e = this.mayThrowConditions[i];
-						statement = new IfStatement(e, new EmptyStatement(0,0), statement, e.sourceStart, e.sourceEnd);
+						Expression condition = new InstanceOfExpression(
+								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
+								this.mayThrowExceptionTypeNames[i]
+						);
+						Block thenBlock = new Block(0);
+						thenBlock.statements = new Statement[] {
+							new IfStatement(e, new EmptyStatement(0,0), noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
+						};
+						statement = new IfStatement(condition, thenBlock, statement, e.sourceStart, e.sourceEnd);
 					}	
 					postconditionBlockStatements.add(statement);
 				}	
