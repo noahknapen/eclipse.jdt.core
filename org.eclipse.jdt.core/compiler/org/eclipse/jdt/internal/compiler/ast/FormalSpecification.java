@@ -29,7 +29,7 @@ public class FormalSpecification {
 
 	private static final char[] preconditionAssertionMessage = "Precondition does not hold".toCharArray(); //$NON-NLS-1$
 	private static final char[] postconditionAssertionMessage = "Postcondition does not hold".toCharArray(); //$NON-NLS-1$
-	private static final char[] maythrowconditionAssertionMessage = "@may_throw condition does not hold".toCharArray(); //$NON-NLS-1$
+	private static final char[] maythrowconditionAssertionMessage = "@may_throw condition does not hold for the thrown exception type".toCharArray(); //$NON-NLS-1$
 	private static final char[] throwsAssertionMessage = "@throws condition holds but specified exception type not thrown".toCharArray(); //$NON-NLS-1$
 	private static final char[] thrownExceptionNotformal = "The thrown exception was not specified in the formal specification".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
