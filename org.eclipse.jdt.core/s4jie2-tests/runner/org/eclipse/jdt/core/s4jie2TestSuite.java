@@ -233,7 +233,25 @@ public class s4jie2TestSuite {
 			deleteFileTree(binPath);
 		if (new File(multifileBinPath).exists())
 			deleteFileTree(multifileBinPath);
-
+		
+		//testCompileAndRun(true, "throw_exception_not_specified", true, 
+		//		"SEVERE:...", "");
+		testCompile("no_throw_exception_type", false, "",
+				"----------\n" + 
+				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" +
+				"	* @throws | false\n" +
+				"	  ^^^^^^^\n" +
+				"Exception type expected after @throws tag\n" +
+				"----------\n" +
+				"1 problem (1 error)\n");
+		testCompile("no_may_throw_exception_type", false, "",
+				"----------\n" + 
+				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" +
+				"	* @may_throw | false\n" +
+				"	  ^^^^^^^^^^\n" +
+				"Exception type expected after @may_throw tag\n" +
+				"----------\n" +
+				"1 problem (1 error)\n");
 		testCompile("Minimal", true, "", "");
 
 		testCompileAndRun(false, "GameCharacter_pre", true, "",
@@ -1359,6 +1377,12 @@ public class s4jie2TestSuite {
 	    		+ "	at Main.<init>(issue34bis.java:11)\n"
 	    		+ "	at Main.main(issue34bis.java:26)\n");
 		testCompileAndRun(true, "issue35", true, "", "");
+		testCompileAndRun(true, "throw_exception_not_specified", true, 
+				"SEVERE:...", "");
+		testCompile("no_throw_exception_type", false, "",
+				"Unresolved compilation problem");
+		testCompile("no_may_throw_exception_type", false, "",
+				"Unresolved compilation problem");
 			    
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
