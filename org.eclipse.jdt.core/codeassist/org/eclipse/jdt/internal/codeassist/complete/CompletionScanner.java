@@ -175,7 +175,7 @@ protected int getNextToken0() throws InvalidInputException {
 					if ((this.currentCharacter == '\r') || (this.currentCharacter == '\n')) {
 						//checkNonExternalizedString();
 						// If a endline is after a dot, possible completion must be checked before skipping to the next formal javadoc line
-					if ((whiteStart != this.currentPosition)
+						if ((whiteStart != this.currentPosition)
 							//&& (previousToken == TokenNameDOT)
 							&& (this.completionIdentifier == null)
 							&& (whiteStart <= this.cursorLocation+1)
@@ -203,7 +203,6 @@ protected int getNextToken0() throws InvalidInputException {
 								}
 							}
 						}
-						
 					}
 					isWhiteSpace =
 						(this.currentCharacter == ' ') || CharOperation.isWhitespace(this.currentCharacter);
