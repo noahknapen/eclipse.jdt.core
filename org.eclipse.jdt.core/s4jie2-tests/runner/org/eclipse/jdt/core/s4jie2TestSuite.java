@@ -252,6 +252,34 @@ public class s4jie2TestSuite {
 				"Exception type expected after @may_throw tag\n" +
 				"----------\n" +
 				"1 problem (1 error)\n");
+		testCompileAndRun(true, "correct_throw_exception", false, "", 
+				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+				+ "	at Foo.bar(correct_throw_exception.java:7)\n"
+				+ "	at Foo.bar$spec(correct_throw_exception.java)\n"
+				+ "	at Main.main(correct_throw_exception.java:14)\n");
+		//testCompileAndRun(true, "correct_may_throw_exception", false, "",
+		//		"SEVERE");
+		testCompileAndRun(true, "correct_throw_may_throw_exception", false, "",
+				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+				+ "	at Foo.bar(correct_throw_may_throw_exception.java:8)\n"
+				+ "	at Foo.bar$spec(correct_throw_may_throw_exception.java)\n"
+				+ "	at Main.main(correct_throw_may_throw_exception.java:15)\n");
+		testCompile("no_throw_exception_type", false, "",
+				"----------\n" + 
+				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" +
+				"	* @throws | false\n" +
+				"	  ^^^^^^^\n" +
+				"Exception type expected after @throws tag\n" +
+				"----------\n" +
+				"1 problem (1 error)\n");
+		testCompile("no_may_throw_exception_type", false, "",
+				"----------\n" + 
+				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" +
+				"	* @may_throw | false\n" +
+				"	  ^^^^^^^^^^\n" +
+				"Exception type expected after @may_throw tag\n" +
+				"----------\n" +
+				"1 problem (1 error)\n");
 		testCompile("Minimal", true, "", "");
 
 		testCompileAndRun(false, "GameCharacter_pre", true, "",
