@@ -470,10 +470,23 @@ public class FormalSpecification {
 									new NullLiteral(0, 0),
 									OperatorIds.NOT_EQUAL);
 							
+							Block exceptionNotNullThenBlock = new Block(0);
+							exceptionNotNullThenBlock.statements = new Statement[] {
+									generateSevereLoggerMessage(throwsAssertionMessage),
+									new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd)
+							};
+							
+							AllocationExpression assertionError = new AllocationExpression();
+							assertionError.type = javaLangAssertionError();
+							assertionError.arguments = new Expression[] {
+									new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
+							};
+							assertionError.sourceStart = e.sourceStart;
+							assertionError.sourceEnd = e.sourceEnd;
+							
 							thenBlock.statements = new Statement[] {
 									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									generateLoggerMessage,
-									new IfStatement(exceptionNotNull, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd)};
+									new IfStatement(exceptionNotNull, exceptionNotNullThenBlock, new ThrowStatement(assertionError, e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd)};
 
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
 						}
