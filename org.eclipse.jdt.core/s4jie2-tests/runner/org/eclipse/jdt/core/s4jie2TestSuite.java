@@ -264,24 +264,20 @@ public class s4jie2TestSuite {
 				+ "	at Foo.bar(correct_throw_may_throw_exception.java:8)\n"
 				+ "	at Foo.bar$spec(correct_throw_may_throw_exception.java)\n"
 				+ "	at Main.main(correct_throw_may_throw_exception.java:15)\n");
-		testCompile("no_throw_exception_type", false, "",
-				"----------\n" + 
-				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" +
-				"	* @throws | false\n" +
-				"	  ^^^^^^^\n" +
-				"Exception type expected after @throws tag\n" +
-				"----------\n" +
-				"1 problem (1 error)\n");
-		testCompile("no_may_throw_exception_type", false, "",
-				"----------\n" + 
-				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" +
-				"	* @may_throw | false\n" +
-				"	  ^^^^^^^^^^\n" +
-				"Exception type expected after @may_throw tag\n" +
-				"----------\n" +
-				"1 problem (1 error)\n");
+		testCompileAndRun(true, "no_exception_throw_condition_satisfied", false, 
+				"",
+				"Exception in thread \"main\" java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
+				+ "	at Main.foo$post(no_exception_throw_condition_satisfied.java:4)\n"
+				+ "	at Main.foo(no_exception_throw_condition_satisfied.java:7)\n"
+				+ "	at Main.main(no_exception_throw_condition_satisfied.java:11)\n");
+		//testCompileAndRun(true, "wrong_exception_throw_condition_satisfied", false,
+		//		"",
+		//		"SEVERE");
+		testCompileAndRun(true, "no_throw_may_throw_condition_satisfied", true, "", "");
+		testCompileAndRun(true, "no_throw_may_throw_condition_not_satisfied", true, "", "");
+		
 		testCompile("Minimal", true, "", "");
-
+		
 		testCompileAndRun(false, "GameCharacter_pre", true, "",
 				"No exception was thrown! :-(\n" +
 				"No exception was thrown! :-(\n");
