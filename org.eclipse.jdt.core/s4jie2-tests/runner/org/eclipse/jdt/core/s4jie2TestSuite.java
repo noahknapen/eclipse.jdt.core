@@ -72,6 +72,19 @@ public class s4jie2TestSuite {
 			System.exit(1);
 		}
 	}
+	
+	public static void assertContainsSubstring(String str, String substr, String msg) {
+		if (!normalize(str).contains(normalize(substr))) {
+			System.err.println("FAIL " + msg + " is not as expected. The expected string is not a substring of the actual string");
+			System.err.println("=== expected START ===");
+			System.err.println(str);
+			System.err.println("=== expected END ===");
+			System.err.println("=== actual START ===");
+			System.err.println(substr);
+			System.err.println("=== actual END ===");
+			System.exit(1);
+		}
+	}
 
 	private static final String binPath = "s4jie2-tests/bin";
 	private static final String multifileBinPath = "s4jie2-tests/bin_multifile";
@@ -186,6 +199,43 @@ public class s4jie2TestSuite {
 		assertEquals(stderr, errExpected, "standard error");
 		System.out.println("PASS Test "+ filename + " execution success");
 	}
+	
+	public static void testPartOfStringCompileAndRun(boolean enableAssertions, String filename, boolean expectedSuccess, String partOfOutExpected, String partOfErrExpected) throws IOException {
+		testCompile(filename, true, "", "");
+
+		String classpath = binPath+"/"+filename;
+		Process process = new ProcessBuilder(System.getProperty("java.home") + "/bin/java", "-classpath", classpath, enableAssertions ? "-ea" : "-da", "Main").start();
+		StringBuilder stdoutBuffer = new StringBuilder();
+		Thread stdoutThread = new Thread(() -> readFullyInto(process.getInputStream(), stdoutBuffer));
+		stdoutThread.start();
+		StringBuilder stderrBuffer = new StringBuilder();
+		Thread stderrThread = new Thread(() -> readFullyInto(process.getErrorStream(), stderrBuffer));
+		stderrThread.start();
+		int exitCode;
+		try {
+			exitCode = process.waitFor();
+			stdoutThread.join();
+			stderrThread.join();
+		} catch (InterruptedException e) {
+			throw new AssertionError(e);
+		}
+		String stdout = stdoutBuffer.toString();
+		String stderr = stderrBuffer.toString();
+
+		if ((exitCode == 0) != expectedSuccess) {
+			System.err.println("FAIL execution success: expected: " + expectedSuccess + "; actual: exit code " + exitCode);
+			System.err.println("=== standard output start ===");
+			System.err.println(stdout);
+			System.err.println("=== standard output end ===");
+			System.err.println("=== standard error start ===");
+			System.err.println(stderr);
+			System.err.println("=== standard error end ===");
+			System.exit(1);
+		}
+		assertContainsSubstring(stdout, partOfOutExpected, "standard output");
+		assertContainsSubstring(stderr, partOfErrExpected, "standard error");
+		System.out.println("PASS Test "+ filename + " execution success");
+	}
 
 	public static void testCompileAndRunMultifile(String rootDirectory, boolean expectedSuccess, String outExpected, String errExpected) throws IOException {
 		testCompileMultifile(rootDirectory, true, "", "");
@@ -234,8 +284,12 @@ public class s4jie2TestSuite {
 		if (new File(multifileBinPath).exists())
 			deleteFileTree(multifileBinPath);
 		
-		//testCompileAndRun(true, "throw_exception_not_specified", true, 
-		//		"SEVERE:...", "");
+		testPartOfStringCompileAndRun(true, "throw_exception_not_specified", false, "", 
+				"SEVERE: The thrown exception was not specified in the formal specification\n"
+				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+				+ "	at Foo.bar(throw_exception_not_specified.java:8)\n"
+				+ "	at Foo.bar$spec(throw_exception_not_specified.java)\n"
+				+ "	at Main.main(throw_exception_not_specified.java:15)\n");
 		testCompile("no_throw_exception_type", false, "",
 				"----------\n" + 
 				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 4)\n" +
@@ -257,8 +311,11 @@ public class s4jie2TestSuite {
 				+ "	at Foo.bar(correct_throw_exception.java:7)\n"
 				+ "	at Foo.bar$spec(correct_throw_exception.java)\n"
 				+ "	at Main.main(correct_throw_exception.java:14)\n");
-		//testCompileAndRun(true, "correct_may_throw_exception", false, "",
-		//		"SEVERE");
+		testPartOfStringCompileAndRun(true, "correct_may_throw_exception", false, "",
+				"SEVERE: The thrown exception was not specified in the formal specification\n"
+				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+				+ "	at Foo.bar(correct_may_throw_exception.java:7)\n"
+				+ "	at Main.main(correct_may_throw_exception.java:14)\n");
 		testCompileAndRun(true, "correct_throw_may_throw_exception", false, "",
 				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Foo.bar(correct_throw_may_throw_exception.java:8)\n"
@@ -270,9 +327,11 @@ public class s4jie2TestSuite {
 				+ "	at Main.foo$post(no_exception_throw_condition_satisfied.java:4)\n"
 				+ "	at Main.foo(no_exception_throw_condition_satisfied.java:7)\n"
 				+ "	at Main.main(no_exception_throw_condition_satisfied.java:11)\n");
-		//testCompileAndRun(true, "wrong_exception_throw_condition_satisfied", false,
-		//		"",
-		//		"SEVERE");
+		testPartOfStringCompileAndRun(true, "wrong_exception_throw_condition_satisfied", false,"",
+				"SEVERE: @throws condition holds but specified exception type not thrown\n"
+				+ "Exception in thread \"main\" java.lang.ArithmeticException\n"
+				+ "	at Main.foo(wrong_exception_throw_condition_satisfied.java:7)\n"
+				+ "	at Main.main(wrong_exception_throw_condition_satisfied.java:11)\n");
 		testCompileAndRun(true, "no_throw_may_throw_condition_satisfied", true, "", "");
 		testCompileAndRun(true, "no_throw_may_throw_condition_not_satisfied", true, "", "");
 		
