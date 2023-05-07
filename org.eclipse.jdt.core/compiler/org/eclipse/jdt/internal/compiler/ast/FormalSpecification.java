@@ -32,6 +32,7 @@ public class FormalSpecification {
 	private static final char[] maythrowconditionAssertionMessage = "@may_throw condition does not hold for the thrown exception type".toCharArray(); //$NON-NLS-1$
 	private static final char[] throwsAssertionMessage = "@throws condition holds but specified exception type not thrown".toCharArray(); //$NON-NLS-1$
 	private static final char[] thrownExceptionNotformal = "The thrown exception was not specified in the formal specification".toCharArray(); //$NON-NLS-1$
+	private static final char[] multipleThrowsClausesSatisfied = "Multiple @throws conditions are satisfied. At most one may be satisfied since only one exception can be thrown at a time.".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
 	private static final char[] PRECONDITION_METHOD_NAME_SUFFIX = "$pre".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_METHOD_NAME_SUFFIX = "$post".toCharArray(); //$NON-NLS-1$
@@ -42,6 +43,7 @@ public class FormalSpecification {
 	private static final char[] LAMBDA_PARAMETER2_NAME = " $exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] RESULT_NAME = "result".toCharArray(); //$NON-NLS-1$
 	private static final char[] THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME = "$throwsClausesFailedCount".toCharArray(); //$NON-NLS-1$
+	private static final char[] ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME = "$oneThrowsClauseSatisfied".toCharArray(); //$NON-NLS-1$
 	
 	private static QualifiedTypeReference getTypeReference(String name) {
 		String[] components = name.split("\\."); //$NON-NLS-1$
@@ -314,30 +316,33 @@ public class FormalSpecification {
 			}
 			if (this.throwsConditions != null) {
 				LocalDeclaration throwsClausesFailedCountVariableDeclaration = new LocalDeclaration(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
+				LocalDeclaration oneThrowsClauseSatisfiedVariableDeclaration = new LocalDeclaration(ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
+
 				throwsClausesFailedCountVariableDeclaration.type = TypeReference.baseTypeReference(TypeIds.T_int, 0);
+				throwsClausesFailedCountVariableDeclaration.initialization = createIntLiteral(this.throwsConditions.length, this.method.bodyStart, this.method.bodyStart);
+				oneThrowsClauseSatisfiedVariableDeclaration.type = TypeReference.baseTypeReference(TypeIds.T_boolean, 0);
+				oneThrowsClauseSatisfiedVariableDeclaration.initialization = new FalseLiteral(0,0);
+
 				statementsForBlock.add(throwsClausesFailedCountVariableDeclaration);
-				blockDeclarationsCount++;
-				Statement statement = new Assignment(
-						new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (this.method.bodyStart << 32) | this.method.bodyStart),
-						createIntLiteral(this.throwsConditions.length, this.method.bodyStart, this.method.bodyStart),
-						this.method.bodyStart);
+				statementsForBlock.add(oneThrowsClauseSatisfiedVariableDeclaration);
+				blockDeclarationsCount += 2;
+
 				for (int i = this.throwsConditions.length - 1; 0 <= i; i--) {
 					Expression e = this.throwsConditions[i];
-					Statement thenStatement = new Assignment(
+					Block thenBlock = new Block(0);
+					thenBlock.statements = new Statement[] {
+							new Assignment(
 									new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
 									createIntLiteral(i, e.sourceStart, e.sourceEnd),
-									e.sourceEnd);
-					if (e instanceof TrueLiteral) {
-						statement = thenStatement;
-						break;
-					}
-					else if (e instanceof FalseLiteral) {
-						continue;
-					}
-					else
-						statement = new IfStatement(e, thenStatement, statement, e.sourceStart, e.sourceEnd);
+									e.sourceEnd),	
+							new IfStatement(new SingleNameReference(ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),  // if oneThrowClauseSatisfied, throw AssertionError. Else, set oneThrowClauseSatisfied to true.
+									generateAssertionErrorThrowStatement(e, multipleThrowsClausesSatisfied), 
+									new Assignment(new SingleNameReference(ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new TrueLiteral(0, 0), e.sourceEnd), 
+									e.sourceStart, e.sourceEnd)
+					};
+					IfStatement throwClauseIfStatement = new IfStatement(e, thenBlock, e.sourceStart, e.sourceEnd);
+					statementsForBlock.add(throwClauseIfStatement);
 				}
-				statementsForBlock.add(statement);
 			}
 			if (this.postconditions != null || this.throwsConditions != null || this.mayThrowConditions != null) {
 				this.postconditionMethodCall = new MessageSend();
@@ -459,17 +464,9 @@ public class FormalSpecification {
 									new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd)
 							};
 							
-							AllocationExpression assertionError = new AllocationExpression();
-							assertionError.type = javaLangAssertionError();
-							assertionError.arguments = new Expression[] {
-									new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
-							};
-							assertionError.sourceStart = e.sourceStart;
-							assertionError.sourceEnd = e.sourceEnd;
-							
 							thenBlock.statements = new Statement[] {
 									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									new IfStatement(exceptionNotNull, exceptionNotNullThenBlock, new ThrowStatement(assertionError, e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd)};
+									new IfStatement(exceptionNotNull, exceptionNotNullThenBlock, generateAssertionErrorThrowStatement(e, throwsAssertionMessage), e.sourceStart, e.sourceEnd)};
 
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
 						}
@@ -938,6 +935,18 @@ public class FormalSpecification {
 		generateLoggerMessage.arguments = new Expression[] {new StringLiteral(msg, this.method.sourceStart, this.method.sourceEnd, 0)};
 		return generateLoggerMessage;
 
+	}
+	
+	private ThrowStatement generateAssertionErrorThrowStatement(Expression e, char[] msg) {
+		AllocationExpression assertionError = new AllocationExpression();
+		assertionError.type = javaLangAssertionError();
+		assertionError.arguments = new Expression[] {
+				new StringLiteral(msg, e.sourceStart, e.sourceEnd, 0),
+		};
+		assertionError.sourceStart = e.sourceStart;
+		assertionError.sourceEnd = e.sourceEnd;
+		
+		return new ThrowStatement(assertionError, e.sourceStart, e.sourceEnd);
 	}
 	
 	private ASTVisitor generateOldExpressionASTVisitor(HashMap<String, OldExpression.DistinctExpression> oldExpressions, ArrayList<Statement> statementsForBlock) {
