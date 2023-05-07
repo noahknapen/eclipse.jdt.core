@@ -316,31 +316,28 @@ public class FormalSpecification {
 			}
 			if (this.throwsConditions != null) {
 				LocalDeclaration throwsClausesFailedCountVariableDeclaration = new LocalDeclaration(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
-				LocalDeclaration oneThrowsClauseSatisfiedVariableDeclaration = new LocalDeclaration(ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
 
 				throwsClausesFailedCountVariableDeclaration.type = TypeReference.baseTypeReference(TypeIds.T_int, 0);
-				throwsClausesFailedCountVariableDeclaration.initialization = createIntLiteral(this.throwsConditions.length, this.method.bodyStart, this.method.bodyStart);
-				oneThrowsClauseSatisfiedVariableDeclaration.type = TypeReference.baseTypeReference(TypeIds.T_boolean, 0);
-				oneThrowsClauseSatisfiedVariableDeclaration.initialization = new FalseLiteral(0,0);
-
+				throwsClausesFailedCountVariableDeclaration.initialization = createIntLiteral(Integer.MAX_VALUE, this.method.sourceStart, this.method.sourceEnd);
 				statementsForBlock.add(throwsClausesFailedCountVariableDeclaration);
-				statementsForBlock.add(oneThrowsClauseSatisfiedVariableDeclaration);
-				blockDeclarationsCount += 2;
+				blockDeclarationsCount += 1;
 
 				for (int i = this.throwsConditions.length - 1; 0 <= i; i--) {
 					Expression e = this.throwsConditions[i];
-					Block thenBlock = new Block(0);
-					thenBlock.statements = new Statement[] {
+					if (e instanceof FalseLiteral)
+						continue;
+					IfStatement aThrowClauseAlreadySatisfied = new IfStatement(
+							new EqualExpression(
+									new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
+									createIntLiteral(Integer.MAX_VALUE, e.sourceStart, e.sourceEnd),
+									OperatorIds.NOT_EQUAL),
+							generateAssertionErrorThrowStatement(e, multipleThrowsClausesSatisfied),
 							new Assignment(
 									new SingleNameReference(THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),
 									createIntLiteral(i, e.sourceStart, e.sourceEnd),
-									e.sourceEnd),	
-							new IfStatement(new SingleNameReference(ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd),  // if oneThrowClauseSatisfied, throw AssertionError. Else, set oneThrowClauseSatisfied to true.
-									generateAssertionErrorThrowStatement(e, multipleThrowsClausesSatisfied), 
-									new Assignment(new SingleNameReference(ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new TrueLiteral(0, 0), e.sourceEnd), 
-									e.sourceStart, e.sourceEnd)
-					};
-					IfStatement throwClauseIfStatement = new IfStatement(e, thenBlock, e.sourceStart, e.sourceEnd);
+									e.sourceEnd),
+							e.sourceStart, e.sourceEnd);
+					IfStatement throwClauseIfStatement = new IfStatement(e, aThrowClauseAlreadySatisfied, e.sourceStart, e.sourceEnd);
 					statementsForBlock.add(throwClauseIfStatement);
 				}
 			}
