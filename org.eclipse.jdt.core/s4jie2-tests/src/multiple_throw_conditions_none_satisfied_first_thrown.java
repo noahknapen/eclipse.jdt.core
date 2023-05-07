@@ -1,16 +1,14 @@
-class Foo {
+class Main {
 	
 	/**
+	 * @throws IllegalArgumentException | false
 	 * @throws ArithmeticException | false
 	 */
-	public void bar() {
+	public static void foo() {
 		throw new IllegalArgumentException();
 	}
-}
-
-class Main {
+	
 	public static void main(String[] args) {
-		Foo foo = new Foo();
-		foo.bar();
+		Main.foo();
 	}
 }
