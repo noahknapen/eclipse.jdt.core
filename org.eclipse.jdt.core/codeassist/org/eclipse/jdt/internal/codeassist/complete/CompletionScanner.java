@@ -61,6 +61,21 @@ public CompletionScanner(long sourceLevel, boolean previewEnabled) {
 		true/*taskCaseSensitive*/,
 		previewEnabled);
 }
+
+private boolean nextTokenShouldBeIdentifier(int whiteStart) {
+	if ((whiteStart != this.currentPosition)
+			//&& (previousToken == TokenNameDOT)
+			&& (this.completionIdentifier == null)
+			&& (whiteStart <= this.cursorLocation+1)
+			&& (this.cursorLocation < this.startPosition)
+			&& !ScannerHelper.isJavaIdentifierStart(this.complianceLevel, this.currentCharacter)){
+		
+		this.currentPosition = this.startPosition; // for next token read
+		return true;
+	}
+	return false;
+}
+
 @Override
 protected boolean isAtAssistIdentifier() {
 	if (this.cursorLocation < this.startPosition && this.currentPosition == this.startPosition) { // fake empty identifier got issued
@@ -173,15 +188,8 @@ protected int getNextToken0() throws InvalidInputException {
 				} else {
 					offset = 1;
 					if ((this.currentCharacter == '\r') || (this.currentCharacter == '\n')) {
-						//checkNonExternalizedString();
 						// If a endline is after a dot, possible completion must be checked before skipping to the next formal javadoc line
-						if ((whiteStart != this.currentPosition)
-							//&& (previousToken == TokenNameDOT)
-							&& (this.completionIdentifier == null)
-							&& (whiteStart <= this.cursorLocation+1)
-							&& (this.cursorLocation < this.startPosition)
-							&& !ScannerHelper.isJavaIdentifierStart(this.complianceLevel, this.currentCharacter)){
-							this.currentPosition = this.startPosition; // for next token read
+						if (nextTokenShouldBeIdentifier(whiteStart)){
 							return TokenNameIdentifier;
 						}
 						else {
@@ -211,15 +219,8 @@ protected int getNextToken0() throws InvalidInputException {
 					hasWhiteSpaces = true;
 				}
 				/* completion requesting strictly inside blanks */
-				if ((whiteStart != this.currentPosition)
-					//&& (previousToken == TokenNameDOT)
-					&& (this.completionIdentifier == null)
-					&& (whiteStart <= this.cursorLocation+1)
-					&& (this.cursorLocation < this.startPosition)
-					&& !ScannerHelper.isJavaIdentifierStart(this.complianceLevel, this.currentCharacter)){
-					this.currentPosition = this.startPosition; // for next token read
+				if (nextTokenShouldBeIdentifier(whiteStart))
 					return TokenNameIdentifier;
-				}
 			} while (isWhiteSpace);
 			if (this.tokenizeWhiteSpace && hasWhiteSpaces) {
 				// reposition scanner in case we are interested by spaces as tokens
