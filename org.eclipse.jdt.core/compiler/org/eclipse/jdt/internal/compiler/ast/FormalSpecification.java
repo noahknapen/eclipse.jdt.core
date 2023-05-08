@@ -406,10 +406,8 @@ public class FormalSpecification {
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
-					Block noMayThrowConditionsSatisfiedBlock = new Block(0);
-					noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {generateSevereLoggerMessage(maythrowconditionAssertionMessage),
-							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), this.method.sourceStart, this.method.sourceEnd)
-					};
+
+					MessageSend loggerMessage = generateSevereLoggerMessage(maythrowconditionAssertionMessage);
 					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						if (this.mayThrowExceptionTypeNames[i] == null) {
@@ -424,6 +422,10 @@ public class FormalSpecification {
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 								this.mayThrowExceptionTypeNames[i]
 						);
+						Block noMayThrowConditionsSatisfiedBlock = new Block(0);
+						noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {loggerMessage,
+								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceStart), e.sourceStart, e.sourceEnd)
+						};
 						Block thenBlock = new Block(0);
 						thenBlock.statements = new Statement[] {
 							new IfStatement(e, new EmptyStatement(0,0), noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
