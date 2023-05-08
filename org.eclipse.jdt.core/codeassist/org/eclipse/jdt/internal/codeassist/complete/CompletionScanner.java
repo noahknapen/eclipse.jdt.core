@@ -30,7 +30,7 @@ import org.eclipse.jdt.internal.compiler.parser.ScannerHelper;
 import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;
 
 public class CompletionScanner extends Scanner {
-	
+
 	public char[] completionIdentifier;
 	public int cursorLocation;
 	public int endOfEmptyToken = -1;
@@ -191,8 +191,7 @@ protected int getNextToken0() throws InvalidInputException {
 						// If a endline is after a dot, possible completion must be checked before skipping to the next formal javadoc line
 						if (nextTokenShouldBeIdentifier(whiteStart)){
 							return TokenNameIdentifier;
-						}
-						else {
+						} else {
 							if (this.recordLineSeparator) {
 							pushLineSeparator();
 							}
@@ -318,16 +317,6 @@ protected int getNextToken0() throws InvalidInputException {
 				case '*' :
 					if (getNextChar('='))
 						return TokenNameMULTIPLY_EQUAL;
-					if (this.currentPosition < this.endOfLastJavadocComment) {
-						for (int i = this.javadocCommentPtr; 0 <= i; i--) {
-							if (this.currentPosition == this.javadocCommentStops[i] - 1) {
-								this.currentPosition++;
-								return TokenNameJAVADOC_FORMAL_PART_END;
-							}
-							if (this.javadocCommentStops[i] <= this.currentPosition)
-								break;
-						}
-					}
 					if (this.currentPosition < this.endOfLastJavadocComment) {
 						for (int i = this.javadocCommentPtr; 0 <= i; i--) {
 							if (this.currentPosition == this.javadocCommentStops[i] - 1) {
