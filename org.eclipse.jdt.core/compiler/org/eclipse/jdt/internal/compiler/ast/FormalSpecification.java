@@ -36,14 +36,13 @@ public class FormalSpecification {
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
 	private static final char[] PRECONDITION_METHOD_NAME_SUFFIX = "$pre".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_METHOD_NAME_SUFFIX = "$post".toCharArray(); //$NON-NLS-1$
-	public static final char[] SPECIFICATION_METHOD_NAME_SUFFIX = "$spec".toCharArray();
+	public static final char[] SPECIFICATION_METHOD_NAME_SUFFIX = "$spec".toCharArray(); //$NON-NLS-1$
 	static final char[] OLD_VARIABLE_INNER_SUFFIX = " inner".toCharArray(); //$NON-NLS-1$
 	static final char[] OLD_VARIABLE_EXCEPTION_SUFFIX = " exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] LAMBDA_PARAMETER_NAME = " $result".toCharArray(); //$NON-NLS-1$
 	private static final char[] LAMBDA_PARAMETER2_NAME = " $exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] RESULT_NAME = "result".toCharArray(); //$NON-NLS-1$
 	private static final char[] THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME = "$throwsClausesFailedCount".toCharArray(); //$NON-NLS-1$
-	private static final char[] ONE_THROWS_CLAUSE_SATISFIED_VARIABLE_NAME = "$oneThrowsClauseSatisfied".toCharArray(); //$NON-NLS-1$
 	
 	private static QualifiedTypeReference getTypeReference(String name) {
 		String[] components = name.split("\\."); //$NON-NLS-1$
@@ -266,10 +265,10 @@ public class FormalSpecification {
 						this.method.scope.problemReporter().mutatesPropertiesMethodCallShouldNotSpecifyArguments(e);
 					else if (messageSend.receiver instanceof SpreadExpression) {
 						SpreadExpression receiver = (SpreadExpression)messageSend.receiver;
-						char[] elementName = "spread$element".toCharArray();
+						char[] elementName = "spread$element".toCharArray(); //$NON-NLS-1$
 						LocalDeclaration elementVariable = new LocalDeclaration(elementName, e.sourceStart, e.sourceEnd);
 						long pos = ((long)e.sourceStart << 32) + e.sourceEnd;
-						elementVariable.type = new SingleTypeReference("var".toCharArray(), pos);
+						elementVariable.type = new SingleTypeReference("var".toCharArray(), pos); //$NON-NLS-1$
 						elementVariable.bits |= ASTNode.IsForeachElementVariable;
 						ForeachStatement s = new ForeachStatement(elementVariable, e.sourceStart);
 						s.collection = receiver.body;
@@ -880,9 +879,9 @@ public class FormalSpecification {
 					codeStream.generateBoxingConversion(returnType);
 			}
 			codeStream.aconst_null();
-			MethodBinding method = this.postconditionMethodCall.binding.original();
-			TypeBinding constantPoolDeclaringClass = CodeStream.getConstantPoolDeclaringClass(this.method.scope, method, method.declaringClass, false);
-			codeStream.invoke(Opcodes.OPC_invokeinterface, method, constantPoolDeclaringClass);
+			MethodBinding generatedMethod = this.postconditionMethodCall.binding.original();
+			TypeBinding constantPoolDeclaringClass = CodeStream.getConstantPoolDeclaringClass(this.method.scope, generatedMethod, generatedMethod.declaringClass, false);
+			codeStream.invoke(Opcodes.OPC_invokeinterface, generatedMethod, constantPoolDeclaringClass);
 		}
 		
 	}
