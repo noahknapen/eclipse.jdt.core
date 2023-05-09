@@ -419,9 +419,17 @@ public class FormalSpecification {
 						noMayThrowConditionsSatisfiedBlock.statements = new Statement[] {loggerMessage,
 								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceStart), e.sourceStart, e.sourceEnd)
 						};
+						
+						IfStatement mayThrowConditionSatisfiedStatement = new IfStatement(
+								generateExceptionNotNullExpression(e), 
+								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd),
+								new ReturnStatement(null, e.sourceStart, e.sourceStart),
+								e.sourceStart,
+								e.sourceEnd);
+						
 						Block thenBlock = new Block(0);
 						thenBlock.statements = new Statement[] {
-							new IfStatement(e, new ReturnStatement(null, e.sourceStart, e.sourceStart), noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
+							new IfStatement(e, mayThrowConditionSatisfiedStatement, noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
 						};
 						statement = new IfStatement(condition, thenBlock, statement, e.sourceStart, e.sourceEnd);
 					}	
@@ -444,12 +452,7 @@ public class FormalSpecification {
 									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 									this.throwsExceptionTypeNames[i]
 							);
-							
-							Expression exceptionNotNull = new EqualExpression(
-									new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
-									new NullLiteral(0, 0),
-									OperatorIds.NOT_EQUAL);
-							
+														
 							Block exceptionNotNullThenBlock = new Block(0);
 							exceptionNotNullThenBlock.statements = new Statement[] {
 									generateSevereLoggerMessage(throwsAssertionMessage),
@@ -458,7 +461,7 @@ public class FormalSpecification {
 							
 							thenBlock.statements = new Statement[] {
 									new IfStatement(condition2, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), e.sourceStart, e.sourceEnd),
-									new IfStatement(exceptionNotNull, exceptionNotNullThenBlock, generateAssertionErrorThrowStatement(e, throwsAssertionMessage), e.sourceStart, e.sourceEnd)};
+									new IfStatement(generateExceptionNotNullExpression(e), exceptionNotNullThenBlock, generateAssertionErrorThrowStatement(e, throwsAssertionMessage), e.sourceStart, e.sourceEnd)};
 
 							postconditionBlockStatements.add(new IfStatement(condition1, thenBlock, e.sourceStart, e.sourceEnd));
 						}
@@ -939,6 +942,14 @@ public class FormalSpecification {
 		assertionError.sourceEnd = e.sourceEnd;
 		
 		return new ThrowStatement(assertionError, e.sourceStart, e.sourceEnd);
+	}
+	
+	private Expression generateExceptionNotNullExpression(Expression e) {
+		Expression exceptionNotNull = new EqualExpression(
+				new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
+				new NullLiteral(0, 0),
+				OperatorIds.NOT_EQUAL);
+		return exceptionNotNull;
 	}
 	
 	private ASTVisitor generateOldExpressionASTVisitor(HashMap<String, OldExpression.DistinctExpression> oldExpressions, ArrayList<Statement> statementsForBlock) {
