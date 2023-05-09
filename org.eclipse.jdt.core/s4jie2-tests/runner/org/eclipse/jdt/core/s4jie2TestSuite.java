@@ -311,9 +311,8 @@ public class s4jie2TestSuite {
 				+ "	at Foo.bar(correct_throw_exception.java:7)\n"
 				+ "	at Foo.bar$spec(correct_throw_exception.java)\n"
 				+ "	at Main.main(correct_throw_exception.java:14)\n");
-		testPartOfStringCompileAndRun(true, "correct_may_throw_exception", false, "",
-				"SEVERE: The thrown exception was not specified in the formal specification\n"
-				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+		testCompileAndRun(true, "correct_may_throw_exception", false, "", 
+				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Foo.bar(correct_may_throw_exception.java:7)\n"
 				+ "	at Main.main(correct_may_throw_exception.java:14)\n");
 		testCompileAndRun(true, "correct_throw_may_throw_exception", false, "",
@@ -397,9 +396,8 @@ public class s4jie2TestSuite {
 				+ "Exception in thread \"main\" java.lang.ArithmeticException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_none_satisfied_second_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_none_satisfied_second_thrown.java:12)\n");
-		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_first_satisfied_first_thrown", false, "", 
-				"SEVERE: The thrown exception was not specified in the formal specification\n"
-				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+		testCompileAndRun(true, "multiple_may_throw_conditions_first_satisfied_first_thrown", false, "", 
+				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_first_satisfied_first_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_first_satisfied_first_thrown.java:12)\n");
 		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_first_satisfied_second_thrown", false, "", 
@@ -412,19 +410,16 @@ public class s4jie2TestSuite {
 				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_second_satisfied_first_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_second_satisfied_first_thrown.java:12)");
-		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_second_satisfied_second_thrown", false, "", 
-				"SEVERE: The thrown exception was not specified in the formal specification\n"
-				+ "Exception in thread \"main\" java.lang.ArithmeticException\n"
+		testCompileAndRun(true, "multiple_may_throw_conditions_second_satisfied_second_thrown", false, "", 
+				"Exception in thread \"main\" java.lang.ArithmeticException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_second_satisfied_second_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_second_satisfied_second_thrown.java:12)\n");
-		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_satisfied_first_thrown", false, "", 
-				"SEVERE: The thrown exception was not specified in the formal specification\n"
-				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+		testCompileAndRun(true, "multiple_may_throw_conditions_satisfied_first_thrown", false, "", 
+				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_satisfied_first_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_satisfied_first_thrown.java:12)\n");
-		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_satisfied_second_thrown", false, "", 
-				"SEVERE: The thrown exception was not specified in the formal specification\n"
-				+ "Exception in thread \"main\" java.lang.ArithmeticException\n"
+		testCompileAndRun(true, "multiple_may_throw_conditions_satisfied_second_thrown", false, "", 
+				"Exception in thread \"main\" java.lang.ArithmeticException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_satisfied_second_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_satisfied_second_thrown.java:12)\n");
 
