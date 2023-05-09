@@ -420,16 +420,9 @@ public class FormalSpecification {
 								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) + e.sourceStart), e.sourceStart, e.sourceEnd)
 						};
 						
-						IfStatement mayThrowConditionSatisfiedStatement = new IfStatement(
-								generateExceptionNotNullExpression(e), 
-								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd),
-								new ReturnStatement(null, e.sourceStart, e.sourceStart),
-								e.sourceStart,
-								e.sourceEnd);
-						
 						Block thenBlock = new Block(0);
 						thenBlock.statements = new Statement[] {
-							new IfStatement(e, mayThrowConditionSatisfiedStatement, noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
+							new IfStatement(e, new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart), e.sourceStart, e.sourceEnd), noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
 						};
 						statement = new IfStatement(condition, thenBlock, statement, e.sourceStart, e.sourceEnd);
 					}	
