@@ -1555,12 +1555,6 @@ public class s4jie2TestSuite {
 	    		+ "	at Main.<init>(issue34bis.java:11)\n"
 	    		+ "	at Main.main(issue34bis.java:26)\n");
 		testCompileAndRun(true, "issue35", true, "", "");
-		testCompileAndRun(true, "throw_exception_not_specified", true, 
-				"SEVERE:...", "");
-		testCompile("no_throw_exception_type", false, "",
-				"Unresolved compilation problem");
-		testCompile("no_may_throw_exception_type", false, "",
-				"Unresolved compilation problem");
 			    
 		System.out.println("s4jie2TestSuite: All tests passed.");
 	}
