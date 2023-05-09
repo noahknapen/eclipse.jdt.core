@@ -397,7 +397,6 @@ public class FormalSpecification {
 							continue;
 						}
 						Expression e = this.mayThrowConditions[i];
-						//e.resolveTypeExpecting(this.method.scope, TypeBinding.BOOLEAN);
 						
 						this.mayThrowConditions[i] = new OldExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
 						ASTVisitor astVisitor = this.generateOldExpressionASTVisitor(oldExpressions, statementsForBlock);
@@ -405,17 +404,12 @@ public class FormalSpecification {
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
-
 					MessageSend loggerMessage = generateSevereLoggerMessage(maythrowconditionAssertionMessage);
 					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						if (this.mayThrowExceptionTypeNames[i] == null) {
 							continue;
 						}
-						// Put an if-statement with expression instanceof exception. When true, check if the condition for that exception is satisfied.
-						// When no instanceof statement is true, simply continue execution (it is MAY throw, not MUST throw so is legal to not specify an exception)
-						// When instanceof is true and condition is satisfied, do NOT throw caught exception as the @throws clauses have to be checked too
-						// When instanceof is true and condition is NOT satisfied, generate a logger message and throw exception
 						Expression e = this.mayThrowConditions[i];
 						Expression condition = new InstanceOfExpression(
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
