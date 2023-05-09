@@ -421,7 +421,7 @@ public class FormalSpecification {
 						};
 						Block thenBlock = new Block(0);
 						thenBlock.statements = new Statement[] {
-							new IfStatement(e, new EmptyStatement(0,0), noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
+							new IfStatement(e, new ReturnStatement(null, e.sourceStart, e.sourceStart), noMayThrowConditionsSatisfiedBlock, e.sourceStart, e.sourceEnd)
 						};
 						statement = new IfStatement(condition, thenBlock, statement, e.sourceStart, e.sourceEnd);
 					}	
