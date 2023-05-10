@@ -32,7 +32,6 @@ public class FormalSpecification {
 	private static final char[] maythrowconditionAssertionMessage = "@may_throw condition does not hold for the thrown exception type".toCharArray(); //$NON-NLS-1$
 	private static final char[] throwsAssertionMessage = "@throws condition holds but specified exception type not thrown".toCharArray(); //$NON-NLS-1$
 	private static final char[] thrownExceptionNotformal = "The thrown exception was not specified in the formal specification".toCharArray(); //$NON-NLS-1$
-	private static final char[] multipleThrowsClausesSatisfied = "Multiple @throws conditions are satisfied. At most one may be satisfied since only one exception can be thrown at a time.".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_VARIABLE_NAME = " $post".toCharArray(); //$NON-NLS-1$
 	private static final char[] PRECONDITION_METHOD_NAME_SUFFIX = "$pre".toCharArray(); //$NON-NLS-1$
 	private static final char[] POSTCONDITION_METHOD_NAME_SUFFIX = "$post".toCharArray(); //$NON-NLS-1$
@@ -42,7 +41,6 @@ public class FormalSpecification {
 	private static final char[] LAMBDA_PARAMETER_NAME = " $result".toCharArray(); //$NON-NLS-1$
 	private static final char[] LAMBDA_PARAMETER2_NAME = " $exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] RESULT_NAME = "result".toCharArray(); //$NON-NLS-1$
-	private static final char[] THROWS_CLAUSES_FAILED_COUNT_VARIABLE_NAME = "$throwsClausesFailedCount".toCharArray(); //$NON-NLS-1$
 	private static final char[] A_THROW_CLAUSE_SATISFIED_VARIABLE_NAME = "$aThrowClauseSatisfied".toCharArray(); //$NON-NLS-1$
 	
 	private static QualifiedTypeReference getTypeReference(String name) {
@@ -61,11 +59,6 @@ public class FormalSpecification {
 		for (int i = 0; i < components.length; i++)
 			tokens[i] = components[i].toCharArray();
 		return new QualifiedNameReference(tokens, positions, 0, 0);
-	}
-	
-	private static IntLiteral createIntLiteral(int value, int sourceStart, int sourceEnd) {
-		char[] literalChars = String.valueOf(value).toCharArray();
-		return new IntLiteral(literalChars, literalChars, sourceStart, sourceEnd);
 	}
 	
 	private static QualifiedTypeReference javaLangObject() { return getTypeReference("java.lang.Object"); } //$NON-NLS-1$
@@ -426,8 +419,12 @@ public class FormalSpecification {
 								this.throwsExceptionTypeNames[i]
 						);
 						Assignment aThrowClauseSatisfiedVariableAssigment = new Assignment(new SingleNameReference(A_THROW_CLAUSE_SATISFIED_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new TrueLiteral(0,0), e.sourceEnd);
+						Expression exceptionNotNullExpression = new EqualExpression(
+								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
+								new NullLiteral(0, 0),
+								OperatorIds.NOT_EQUAL);
 						IfStatement exceptionNotNullIfStatement = new IfStatement(
-								generateExceptionNotNullExpression(e),
+								exceptionNotNullExpression,
 								generateSevereLoggerMessage(throwsAssertionMessage),
 								e.sourceStart,
 								e.sourceEnd);
@@ -436,16 +433,25 @@ public class FormalSpecification {
 						IfStatement clauseSatisfiedIfStatement = new IfStatement(e, thenBlock, e.sourceStart, e.sourceEnd);
 						postconditionBlockStatements.add(clauseSatisfiedIfStatement);
 					}
-					
+
 					
 					if (throwExpressionWithTrueLiteralCondition != null) {
 						Expression exceptionNullExpression = new EqualExpression(
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (throwExpressionWithTrueLiteralCondition.sourceStart << 32) | throwExpressionWithTrueLiteralCondition.sourceEnd),
 								new NullLiteral(0, 0),
 								OperatorIds.EQUAL_EQUAL);
+						
+						AllocationExpression assertionError = new AllocationExpression();
+						assertionError.type = javaLangAssertionError();
+						assertionError.arguments = new Expression[] {
+								new StringLiteral(throwsAssertionMessage, throwExpressionWithTrueLiteralCondition.sourceStart, throwExpressionWithTrueLiteralCondition.sourceEnd, 0),
+						};
+						assertionError.sourceStart = throwExpressionWithTrueLiteralCondition.sourceStart;
+						assertionError.sourceEnd = throwExpressionWithTrueLiteralCondition.sourceEnd;
+
 						postconditionBlockStatements.add(new IfStatement(
 								exceptionNullExpression,
-								generateAssertionErrorThrowStatement(throwExpressionWithTrueLiteralCondition, throwsAssertionMessage),
+								new ThrowStatement(assertionError, throwExpressionWithTrueLiteralCondition.sourceStart, throwExpressionWithTrueLiteralCondition.sourceEnd),
 								throwExpressionWithTrueLiteralCondition.sourceStart,
 								throwExpressionWithTrueLiteralCondition.sourceEnd));
 					}
@@ -920,26 +926,6 @@ public class FormalSpecification {
 		generateLoggerMessage.arguments = new Expression[] {new StringLiteral(msg, this.method.sourceStart, this.method.sourceEnd, 0)};
 		return generateLoggerMessage;
 
-	}
-	
-	private ThrowStatement generateAssertionErrorThrowStatement(Expression e, char[] msg) {
-		AllocationExpression assertionError = new AllocationExpression();
-		assertionError.type = javaLangAssertionError();
-		assertionError.arguments = new Expression[] {
-				new StringLiteral(msg, e.sourceStart, e.sourceEnd, 0),
-		};
-		assertionError.sourceStart = e.sourceStart;
-		assertionError.sourceEnd = e.sourceEnd;
-		
-		return new ThrowStatement(assertionError, e.sourceStart, e.sourceEnd);
-	}
-	
-	private Expression generateExceptionNotNullExpression(Expression e) {
-		Expression exceptionNotNull = new EqualExpression(
-				new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
-				new NullLiteral(0, 0),
-				OperatorIds.NOT_EQUAL);
-		return exceptionNotNull;
 	}
 	
 	private ASTVisitor generateOldExpressionASTVisitor(HashMap<String, OldExpression.DistinctExpression> oldExpressions, ArrayList<Statement> statementsForBlock) {
