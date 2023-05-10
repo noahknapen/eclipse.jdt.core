@@ -389,12 +389,12 @@ public class s4jie2TestSuite {
 		testCompileAndRun(true, "multiple_may_throw_conditions_second_satisfied_no_throw", true, "", "");
 		testCompileAndRun(true, "multiple_may_throw_conditions_satisfied_no_throw", true, "", "");
 		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_none_satisfied_first_thrown", false, "", 
-				"SEVERE: @may_throw condition does not hold for the thrown exception type\n"
+				"SEVERE: The thrown exception was not specified in the formal specification\n"
 				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_none_satisfied_first_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_none_satisfied_first_thrown.java:12)\n");
 		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_none_satisfied_second_thrown", false, "",
-				"SEVERE: @may_throw condition does not hold for the thrown exception type\n"
+				"SEVERE: The thrown exception was not specified in the formal specification\n"
 				+ "Exception in thread \"main\" java.lang.ArithmeticException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_none_satisfied_second_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_none_satisfied_second_thrown.java:12)\n");
@@ -403,12 +403,12 @@ public class s4jie2TestSuite {
 				+ "	at Main.foo(multiple_may_throw_conditions_first_satisfied_first_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_first_satisfied_first_thrown.java:12)\n");
 		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_first_satisfied_second_thrown", false, "", 
-				"SEVERE: @may_throw condition does not hold for the thrown exception type\n"
+				"SEVERE: The thrown exception was not specified in the formal specification\n"
 				+ "Exception in thread \"main\" java.lang.ArithmeticException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_first_satisfied_second_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_first_satisfied_second_thrown.java:12)\n");
 		testPartOfStringCompileAndRun(true, "multiple_may_throw_conditions_second_satisfied_first_thrown", false, "", 
-				"SEVERE: @may_throw condition does not hold for the thrown exception type\n"
+				"SEVERE: The thrown exception was not specified in the formal specification\n"
 				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_may_throw_conditions_second_satisfied_first_thrown.java:8)\n"
 				+ "	at Main.main(multiple_may_throw_conditions_second_satisfied_first_thrown.java:12)");
