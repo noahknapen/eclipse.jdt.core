@@ -343,7 +343,8 @@ public class FormalSpecification {
 					catchMethodExceptionBlock.sourceStart = this.method.sourceStart;
 					catchMethodExceptionBlock.sourceEnd = this.method.sourceEnd;
 					catchMethodExceptionBlock.statements = new Statement[] {
-							this.postconditionMethodCall
+							this.postconditionMethodCall,
+							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.sourceStart << 32) + this.method.sourceStart), this.method.sourceStart, this.method.sourceEnd)
 							};
 					catchMethodExceptionBlock.scope = this.method.scope; 
 					tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};
