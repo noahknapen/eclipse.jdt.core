@@ -472,8 +472,13 @@ public class FormalSpecification {
 					assertionError.sourceStart = this.method.sourceStart;
 					assertionError.sourceEnd = this.method.sourceEnd;
 					
+					Expression exceptionNullExpression = new EqualExpression(
+								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd),
+								new NullLiteral(0, 0),
+								OperatorIds.EQUAL_EQUAL);
+					
 					IfStatement aThrowClauseSatisfiedAndNotThrownIfStatement = new IfStatement(
-							new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_NOT_THROWN_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd),
+							new AND_AND_Expression(new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_NOT_THROWN_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd), exceptionNullExpression, OperatorIds.AND_AND),
 							new ThrowStatement(assertionError, this.method.sourceStart, this.method.sourceEnd),
 							this.method.sourceStart,
 							this.method.sourceEnd);

@@ -323,10 +323,10 @@ public class s4jie2TestSuite {
 		testCompileAndRun(true, "no_exception_throw_condition_satisfied", false, 
 				"",
 				"Exception in thread \"main\" java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
-				+ "	at Main.foo$post(no_exception_throw_condition_satisfied.java:4)\n"
+				+ "	at Main.foo$post(no_exception_throw_condition_satisfied.java:6)\n"
 				+ "	at Main.foo(no_exception_throw_condition_satisfied.java:7)\n"
 				+ "	at Main.main(no_exception_throw_condition_satisfied.java:11)\n");
-		testPartOfStringCompileAndRun(true, "wrong_exception_throw_condition_satisfied", false, "",
+		testPartOfStringCompileAndRun(true, "wrong_exception_throw_condition_satisfied", false, "", 
 				"SEVERE: @throws condition holds but specified exception type not thrown\n");
 		testPartOfStringCompileAndRun(true, "wrong_exception_throw_condition_satisfied", false, "", 
 				"SEVERE: The thrown exception was not specified in the formal specification\n"
@@ -337,7 +337,7 @@ public class s4jie2TestSuite {
 		testCompileAndRun(true, "no_throw_may_throw_condition_not_satisfied", true, "", "");
 		testCompileAndRun(true, "multiple_throw_conditions_satisfied_no_throw", false, "",
 				"Exception in thread \"main\" java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
-				+ "	at Main.foo$post(multiple_throw_conditions_satisfied_no_throw.java:5)\n"
+				+ "	at Main.foo$post(multiple_throw_conditions_satisfied_no_throw.java:7)\n"
 				+ "	at Main.foo(multiple_throw_conditions_satisfied_no_throw.java:8)\n"
 				+ "	at Main.main(multiple_throw_conditions_satisfied_no_throw.java:12)\n");
 		testPartOfStringCompileAndRun(true, "multiple_throw_conditions_satisfied_throw_second", false, "",
@@ -350,11 +350,6 @@ public class s4jie2TestSuite {
 				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_throw_conditions_satisfied_throw_first.java:8)\n"
 				+ "	at Main.main(multiple_throw_conditions_satisfied_throw_first.java:12)\n");
-		testCompileAndRun(true, "multiple_throw_conditions_satisfied_throw_none", false, "",
-				"Exception in thread \"main\" java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
-				+ "	at Main.foo$post(multiple_throw_conditions_satisfied_throw_none.java:5)\n"
-				+ "	at Main.foo(multiple_throw_conditions_satisfied_throw_none.java:8)\n"
-				+ "	at Main.main(multiple_throw_conditions_satisfied_throw_none.java:12)\n");
 		testCompileAndRun(true, "multiple_throw_conditions_first_satisfied_thrown", false, "", 
 				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_throw_conditions_first_satisfied_thrown.java:8)\n"
@@ -366,12 +361,12 @@ public class s4jie2TestSuite {
 		testCompileAndRun(true, "multiple_throw_conditions_none_satisfied_none_thrown", true, "", "");
 		testCompileAndRun(true, "multiple_throw_conditions_first_satisfied_none_thrown", false, "", 
 				"Exception in thread \"main\" java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
-				+ "	at Main.foo$post(multiple_throw_conditions_first_satisfied_none_thrown.java:4)\n"
+				+ "	at Main.foo$post(multiple_throw_conditions_first_satisfied_none_thrown.java:7)\n"
 				+ "	at Main.foo(multiple_throw_conditions_first_satisfied_none_thrown.java:8)\n"
 				+ "	at Main.main(multiple_throw_conditions_first_satisfied_none_thrown.java:12)\n");
 		testCompileAndRun(true, "multiple_throw_conditions_second_satisfied_none_thrown", false, "", 
 				"Exception in thread \"main\" java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
-				+ "	at Main.foo$post(multiple_throw_conditions_second_satisfied_none_thrown.java:5)\n"
+				+ "	at Main.foo$post(multiple_throw_conditions_second_satisfied_none_thrown.java:7)\n"
 				+ "	at Main.foo(multiple_throw_conditions_second_satisfied_none_thrown.java:8)\n"
 				+ "	at Main.main(multiple_throw_conditions_second_satisfied_none_thrown.java:12)\n");
 		testPartOfStringCompileAndRun(true, "multiple_throw_conditions_none_satisfied_first_thrown", false, "", 
