@@ -40,7 +40,7 @@ public class FormalSpecification {
 	private static final char[] LAMBDA_PARAMETER_NAME = " $result".toCharArray(); //$NON-NLS-1$
 	private static final char[] LAMBDA_PARAMETER2_NAME = " $exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] RESULT_NAME = "result".toCharArray(); //$NON-NLS-1$
-	private static final char[] A_THROW_CLAUSE_SATISFIED_VARIABLE_NAME = "$aThrowClauseSatisfied".toCharArray(); //$NON-NLS-1$
+	private static final char[] A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME = "$aThrowClauseSatisfiedAndThrown".toCharArray(); //$NON-NLS-1$
 	
 	private static QualifiedTypeReference getTypeReference(String name) {
 		String[] components = name.split("\\."); //$NON-NLS-1$
@@ -395,30 +395,35 @@ public class FormalSpecification {
 					postconditionBlockStatements.add(statement);
 				}	
 				if (this.throwsConditions != null) {
-					LocalDeclaration aThrowClauseSatisfiedVariableDeclaration = new LocalDeclaration(A_THROW_CLAUSE_SATISFIED_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
+					LocalDeclaration aThrowClauseSatisfiedVariableDeclaration = new LocalDeclaration(A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
 					aThrowClauseSatisfiedVariableDeclaration.type = TypeReference.baseTypeReference(TypeIds.T_boolean, 0);
 					aThrowClauseSatisfiedVariableDeclaration.initialization = new FalseLiteral(0, 0);
 					
 					postconditionBlockStatements.add(aThrowClauseSatisfiedVariableDeclaration);
 					blockDeclarationsCount += 1;
 
-					Expression throwExpressionWithTrueLiteralCondition = null;
 					for (int i = 0; i < this.throwsConditions.length; i++) {
 						Expression e = this.throwsConditions[i];
+
+						AllocationExpression assertionError = new AllocationExpression();
+						assertionError.type = javaLangAssertionError();
+						assertionError.arguments = new Expression[] {
+								new StringLiteral(throwsAssertionMessage, e.sourceStart, e.sourceEnd, 0),
+						};
+						assertionError.sourceStart = e.sourceStart;
+						assertionError.sourceEnd = e.sourceEnd;
 
 						if (this.throwsExceptionTypeNames[i] == null)
 							continue;
 						if (e instanceof FalseLiteral)
 							continue;
-						if (e instanceof TrueLiteral)
-							throwExpressionWithTrueLiteralCondition = this.throwsExceptionTypeNames[i];
 
 						Block thenBlock = new Block(0);
 						Expression instanceOfExpression = new InstanceOfExpression(
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 								this.throwsExceptionTypeNames[i]
 						);
-						Assignment aThrowClauseSatisfiedVariableAssigment = new Assignment(new SingleNameReference(A_THROW_CLAUSE_SATISFIED_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new TrueLiteral(0,0), e.sourceEnd);
+						Assignment aThrowClauseSatisfiedVariableAssigment = new Assignment(new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new TrueLiteral(0,0), e.sourceEnd);
 						Expression exceptionNotNullExpression = new EqualExpression(
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
 								new NullLiteral(0, 0),
@@ -426,38 +431,23 @@ public class FormalSpecification {
 						IfStatement exceptionNotNullIfStatement = new IfStatement(
 								exceptionNotNullExpression,
 								generateSevereLoggerMessage(throwsAssertionMessage),
+								new ThrowStatement(assertionError, e.sourceStart, e.sourceEnd),
 								e.sourceStart,
 								e.sourceEnd);
-						thenBlock.statements = new Statement[] {new IfStatement(instanceOfExpression, aThrowClauseSatisfiedVariableAssigment, exceptionNotNullIfStatement, e.sourceStart, e.sourceEnd)};
+						thenBlock.statements = new Statement[] {
+								new IfStatement(
+										instanceOfExpression, 
+										aThrowClauseSatisfiedVariableAssigment, 
+										exceptionNotNullIfStatement, 
+										e.sourceStart, 
+										e.sourceEnd)};
 						
 						IfStatement clauseSatisfiedIfStatement = new IfStatement(e, thenBlock, e.sourceStart, e.sourceEnd);
 						postconditionBlockStatements.add(clauseSatisfiedIfStatement);
 					}
-
-					
-					if (throwExpressionWithTrueLiteralCondition != null) {
-						Expression exceptionNullExpression = new EqualExpression(
-								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (throwExpressionWithTrueLiteralCondition.sourceStart << 32) | throwExpressionWithTrueLiteralCondition.sourceEnd),
-								new NullLiteral(0, 0),
-								OperatorIds.EQUAL_EQUAL);
-						
-						AllocationExpression assertionError = new AllocationExpression();
-						assertionError.type = javaLangAssertionError();
-						assertionError.arguments = new Expression[] {
-								new StringLiteral(throwsAssertionMessage, throwExpressionWithTrueLiteralCondition.sourceStart, throwExpressionWithTrueLiteralCondition.sourceEnd, 0),
-						};
-						assertionError.sourceStart = throwExpressionWithTrueLiteralCondition.sourceStart;
-						assertionError.sourceEnd = throwExpressionWithTrueLiteralCondition.sourceEnd;
-
-						postconditionBlockStatements.add(new IfStatement(
-								exceptionNullExpression,
-								new ThrowStatement(assertionError, throwExpressionWithTrueLiteralCondition.sourceStart, throwExpressionWithTrueLiteralCondition.sourceEnd),
-								throwExpressionWithTrueLiteralCondition.sourceStart,
-								throwExpressionWithTrueLiteralCondition.sourceEnd));
-					}
 					
 					IfStatement aThrowClauseSatisfiedIfStatement = new IfStatement(
-							new SingleNameReference(A_THROW_CLAUSE_SATISFIED_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd),
+							new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd),
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd),
 							this.method.sourceStart,
 							this.method.sourceEnd);
