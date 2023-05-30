@@ -233,7 +233,7 @@ public class FormalSpecification {
 	public void initializeMethodBinding() {
 		
 		if ((this.method.modifiers & (ClassFileConstants.AccStatic | ClassFileConstants.AccPrivate | ClassFileConstants.AccFinal)) == 0
-				&& !this.method.binding.declaringClass.isFinal() && (this.preconditions != null || this.postconditions != null || this.throwsConditions != null)) {
+				&& !this.method.binding.declaringClass.isFinal() && (this.preconditions != null || this.postconditions != null || this.throwsConditions != null || this.mayThrowConditions != null)) {
 
 			this.method.binding.hasSpecificationMethod = true;
 		    

@@ -327,6 +327,7 @@ public class s4jie2TestSuite {
 		testCompileAndRun(true, "correct_may_throw_exception", false, "", 
 				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Foo.bar(correct_may_throw_exception.java:7)\n"
+				+ "	at Foo.bar$spec(correct_may_throw_exception.java)\n"
 				+ "	at Main.main(correct_may_throw_exception.java:14)\n");
 		testCompileAndRun(true, "correct_throw_may_throw_exception", false, "",
 				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
