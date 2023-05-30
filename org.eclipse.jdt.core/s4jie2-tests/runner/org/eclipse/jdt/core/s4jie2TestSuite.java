@@ -359,9 +359,8 @@ public class s4jie2TestSuite {
 				+ "Exception in thread \"main\" java.lang.ArithmeticException\n"
 				+ "	at Main.foo(multiple_throw_conditions_satisfied_throw_second.java:8)\n"
 				+ "	at Main.main(multiple_throw_conditions_satisfied_throw_second.java:12)\n");
-		testPartOfStringCompileAndRun(true, "multiple_throw_conditions_satisfied_throw_first", false, "",
-				"SEVERE: @throws condition holds but specified exception type not thrown\n"
-				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+		testCompileAndRun(true, "multiple_throw_conditions_satisfied_throw_first", false, "",
+				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(multiple_throw_conditions_satisfied_throw_first.java:8)\n"
 				+ "	at Main.main(multiple_throw_conditions_satisfied_throw_first.java:12)\n");
 		testCompileAndRun(true, "multiple_throw_conditions_first_satisfied_thrown", false, "", 
@@ -459,8 +458,7 @@ public class s4jie2TestSuite {
 				+ "	at Main.foo(non_trivial_throws_no_throw.java:8)\n"
 				+ "	at Main.main(non_trivial_throws_no_throw.java:12)\n");
 		testPartOfStringCompileAndRun(true, "non_trivial_throws_first_thrown", false, "", 
-				"SEVERE: @throws condition holds but specified exception type not thrown\n"
-				+ "Exception in thread \"main\" java.lang.IllegalArgumentException\n"
+				"Exception in thread \"main\" java.lang.IllegalArgumentException\n"
 				+ "	at Main.foo(non_trivial_throws_first_thrown.java:8)\n"
 				+ "	at Main.main(non_trivial_throws_first_thrown.java:12)\n");
 		testPartOfStringCompileAndRun(true, "non_trivial_throws_second_thrown", false, "", 

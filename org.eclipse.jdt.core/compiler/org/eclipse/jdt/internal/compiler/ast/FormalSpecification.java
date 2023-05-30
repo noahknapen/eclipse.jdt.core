@@ -40,7 +40,6 @@ public class FormalSpecification {
 	private static final char[] LAMBDA_PARAMETER_NAME = " $result".toCharArray(); //$NON-NLS-1$
 	private static final char[] LAMBDA_PARAMETER2_NAME = " $exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] RESULT_NAME = "result".toCharArray(); //$NON-NLS-1$
-	private static final char[] A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME = "$aThrowClauseSatisfiedAndThrown".toCharArray(); //$NON-NLS-1$
 	private static final char[] A_THROW_CLAUSE_SATISFIED_AND_NOT_THROWN_VARIABLE_NAME = "$aThrowClauseSatisfiedAndNotThrown".toCharArray(); //$NON-NLS-1$
 	
 	private static QualifiedTypeReference getTypeReference(String name) {
@@ -401,17 +400,12 @@ public class FormalSpecification {
 					postconditionBlockStatements.add(statement);
 				}	
 				if (this.throwsConditions != null) {
-					LocalDeclaration aThrowClauseSatisfiedAndThrownVariableDeclaration = new LocalDeclaration(A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
-					aThrowClauseSatisfiedAndThrownVariableDeclaration.type = TypeReference.baseTypeReference(TypeIds.T_boolean, 0);
-					aThrowClauseSatisfiedAndThrownVariableDeclaration.initialization = new FalseLiteral(0, 0);
-
 					LocalDeclaration aThrowClauseSatisfiedAndNotThrownVariableDeclaration = new LocalDeclaration(A_THROW_CLAUSE_SATISFIED_AND_NOT_THROWN_VARIABLE_NAME, this.method.bodyStart, this.method.bodyStart);
 					aThrowClauseSatisfiedAndNotThrownVariableDeclaration.type = TypeReference.baseTypeReference(TypeIds.T_boolean, 0);
 					aThrowClauseSatisfiedAndNotThrownVariableDeclaration.initialization = new FalseLiteral(0,0);
 					
-					postconditionBlockStatements.add(aThrowClauseSatisfiedAndThrownVariableDeclaration);
 					postconditionBlockStatements.add(aThrowClauseSatisfiedAndNotThrownVariableDeclaration);
-					blockDeclarationsCount += 2;
+					blockDeclarationsCount += 1;
 
 					for (int i = 0; i < this.throwsConditions.length; i++) {
 						Expression e = this.throwsConditions[i];
@@ -425,8 +419,6 @@ public class FormalSpecification {
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 								this.throwsExceptionTypeNames[i]
 						);
-						Assignment aThrowClauseSatisfiedAndThrownVariableAssigmentTrue = new Assignment(new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new TrueLiteral(0,0), e.sourceEnd);
-						Assignment aThrowClauseSatisfiedAndNotThrownVariableAssigmentFalse = new Assignment(new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_NOT_THROWN_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new FalseLiteral(0,0), e.sourceEnd);
 						Assignment aThrowClauseSatisfiedAndNotThrownVariableAssigmentTrue = new Assignment(new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_NOT_THROWN_VARIABLE_NAME, (e.sourceStart << 32) | e.sourceEnd), new TrueLiteral(0,0), e.sourceEnd);
 						Expression exceptionNotNullExpression = new EqualExpression(
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (e.sourceStart << 32) | e.sourceEnd),
@@ -440,29 +432,26 @@ public class FormalSpecification {
 
 						Block instanceOfThenBlock = new Block(0);
 						instanceOfThenBlock.statements = new Statement[] {
-							aThrowClauseSatisfiedAndThrownVariableAssigmentTrue,
-							aThrowClauseSatisfiedAndNotThrownVariableAssigmentFalse
+								new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd),
+						};
+						Block instanceOfElseBlock = new Block(0);
+						instanceOfElseBlock.statements = new Statement[] {
+								aThrowClauseSatisfiedAndNotThrownVariableAssigmentTrue,
+								exceptionNotNullIfStatement
 						};
 						Block throwConditionThenBlock = new Block(0);
 						throwConditionThenBlock.statements = new Statement[] {
-								aThrowClauseSatisfiedAndNotThrownVariableAssigmentTrue,
 								new IfStatement(
 										instanceOfExpression, 
 										instanceOfThenBlock,
-										exceptionNotNullIfStatement, 
+										instanceOfElseBlock,
 										e.sourceStart, 
-										e.sourceEnd)};
+										e.sourceEnd)
+						};
 						
 						IfStatement clauseSatisfiedIfStatement = new IfStatement(e, throwConditionThenBlock, e.sourceStart, e.sourceEnd);
 						postconditionBlockStatements.add(clauseSatisfiedIfStatement);
 					}
-					
-					IfStatement aThrowClauseSatisfiedAndThrownIfStatement = new IfStatement(
-							new SingleNameReference(A_THROW_CLAUSE_SATISFIED_AND_THROWN_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd),
-							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd),
-							this.method.sourceStart,
-							this.method.sourceEnd);
-					postconditionBlockStatements.add(aThrowClauseSatisfiedAndThrownIfStatement);
 					
 					AllocationExpression assertionError = new AllocationExpression();
 					assertionError.type = javaLangAssertionError();
