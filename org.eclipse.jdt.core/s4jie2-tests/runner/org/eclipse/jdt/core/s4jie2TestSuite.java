@@ -195,7 +195,19 @@ public class s4jie2TestSuite {
 				junitPlatformConsoleStandalonePath + pathSeparator +
 				multifileBinPath + "/logicalcollections" + pathSeparator +
 				multifileBinPath + "/" + rootDirectory;
-		Process process = new ProcessBuilder(System.getProperty("java.home") + "/bin/java", "-classpath", classpath, "-ea", "org.junit.platform.console.ConsoleLauncher", "--fail-if-no-tests", "--disable-banner", "-details-theme=ascii", "--disable-ansi-colors", "--include-classname=.*", "--scan-classpath=" + multifileBinPath + "/" + rootDirectory).start();
+		Process process = new ProcessBuilder(System.getProperty("java.home") + "/bin/java",
+					"-classpath", classpath,
+					"-ea",
+					"org.junit.platform.console.ConsoleLauncher",
+					"--config=junit.jupiter.testclass.order.default=org.junit.jupiter.api.ClassOrderer$ClassName",
+					"--config=junit.jupiter.testmethod.order.default=org.junit.jupiter.api.MethodOrderer$MethodName",
+					"--fail-if-no-tests",
+					"--disable-banner",
+					"-details-theme=ascii",
+					"--disable-ansi-colors",
+					"--include-classname=.*",
+					"--scan-classpath=" + multifileBinPath + "/" + rootDirectory
+				).start();
 		StringBuilder stdoutBuffer = new StringBuilder();
 		Thread stdoutThread = new Thread(() -> readFullyInto(process.getInputStream(), stdoutBuffer));
 		stdoutThread.start();
