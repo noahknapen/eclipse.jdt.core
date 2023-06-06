@@ -41,6 +41,9 @@ public class FormalSpecification {
 	private static final char[] LAMBDA_PARAMETER2_NAME = " $exception".toCharArray(); //$NON-NLS-1$
 	private static final char[] RESULT_NAME = "result".toCharArray(); //$NON-NLS-1$
 	private static final char[] A_THROW_CLAUSE_SATISFIED_AND_NOT_THROWN_VARIABLE_NAME = "$aThrowClauseSatisfiedAndNotThrown".toCharArray(); //$NON-NLS-1$
+	private static final char[] GETLOGGER_METHOD_VARIABLE_NAME = "$getLoggerMethod".toCharArray(); //$NON-NLS-1$
+	private static final char[] SEVERE_METHOD_VARIABLE_NAME= "$severeMethod".toCharArray(); //$NON-NLS-1$
+
 	
 	private static QualifiedTypeReference getTypeReference(String name) {
 		String[] components = name.split("\\."); //$NON-NLS-1$
@@ -66,15 +69,20 @@ public class FormalSpecification {
 	}
 	
 	private static QualifiedTypeReference javaLangObject() { return getTypeReference("java.lang.Object"); } //$NON-NLS-1$
+	private static QualifiedNameReference javaLangClassNameReference() { return getNameReference("java.lang.Class"); } //$NON-NLS-1$
+	private static QualifiedTypeReference javaLangClassTypeReference() { return getTypeReference("java.lang.Class"); } //$NON-NLS-1$
+	private static QualifiedTypeReference javaLangString() { return getTypeReference("java.lang.String"); } //$NON-NLS-1$
+	private static QualifiedTypeReference javaLangReflectConstructor() { return getTypeReference("java.lang.reflect.Constructor"); } //$NON-NLS-1$
+	private static QualifiedTypeReference javaLangReflectMethod() { return getTypeReference("java.lang.reflect.Method"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangThrowable() { return getTypeReference("java.lang.Throwable"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangRuntimeException() { return getTypeReference("java.lang.RuntimeException"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangAssertionError() { return getTypeReference("java.lang.AssertionError"); } //$NON-NLS-1$
+	private static QualifiedTypeReference javaLangException() { return getTypeReference("java.lang.Exception"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangRunnable() { return getTypeReference("java.lang.Runnable"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionConsumer() { return getTypeReference("java.util.function.Consumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionBiConsumer() { return getTypeReference("java.util.function.BiConsumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionSupplier() { return getTypeReference("java.util.function.Supplier"); } //$NON-NLS-1$
-	
-	private static QualifiedNameReference javaUtilLoggingLogger() {return getNameReference("java.util.logging.Logger");} //$NON-NLS-1$
+	private static QualifiedTypeReference javaUtilLoggingLogger() {return getTypeReference("java.util.logging.Logger");} //$NON-NLS-1$
 
 	private static TypeReference getBoxedType(TypeBinding binding, TypeReference reference) {
 		switch (binding.id) {
@@ -115,6 +123,18 @@ public class FormalSpecification {
 			case TypeIds.T_void: return getJavaUtilConsumerOf(javaLangRuntimeException());
 			default: return getJavaUtilBiConsumerOf(getBoxedType(returnTypeBinding, returnType), javaLangRuntimeException());
 		}
+	}
+	
+	private static QualifiedTypeReference getJavaLangClassOf(TypeReference typeArgument) {
+		TypeReference[][] typeArguments = new TypeReference[][] { null, null, null, {typeArgument}};
+		QualifiedTypeReference javaLangClass = javaLangClassTypeReference();
+		return new ParameterizedQualifiedTypeReference(javaLangClass.tokens, typeArguments, 0, javaLangClass.sourcePositions);
+	}
+	
+	private static QualifiedTypeReference getJavaLangReflectConstructorOf(TypeReference typeArgument) {
+		TypeReference[][] typeArguments = new TypeReference[][] { null, null, null, {typeArgument}};
+		QualifiedTypeReference javaLangReflectConstructor = javaLangReflectConstructor();
+		return new ParameterizedQualifiedTypeReference(javaLangReflectConstructor.tokens, typeArguments, 0, javaLangReflectConstructor.sourcePositions);
 	}
 
 	public final AbstractMethodDeclaration method;
@@ -337,23 +357,11 @@ public class FormalSpecification {
 					body.statements = this.method.statements;
 					ArrayList<Statement> statementsForOuterBlock = new ArrayList<>();
 					
-					TryStatement tryMethodStatement = new TryStatement();
-					tryMethodStatement.tryBlock = body;
-					Argument catchExceptionArgument = new Argument(LAMBDA_PARAMETER2_NAME, 0, javaLangRuntimeException(), 0);
-					catchExceptionArgument.sourceStart = this.method.sourceStart;
-					catchExceptionArgument.sourceEnd = this.method.sourceEnd;
-					tryMethodStatement.catchArguments = new Argument[] {catchExceptionArgument};
-
-					Block catchMethodExceptionBlock = new Block(0);
-					catchMethodExceptionBlock.sourceStart = this.method.sourceStart;
-					catchMethodExceptionBlock.sourceEnd = this.method.sourceEnd;
-					catchMethodExceptionBlock.statements = new Statement[] {
+					Statement[] catchBlockStatements = new Statement[] {
 							this.postconditionMethodCall,
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.sourceStart << 32) + this.method.sourceStart), this.method.sourceStart, this.method.sourceEnd)
-							};
-					catchMethodExceptionBlock.scope = this.method.scope; 
-					tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};
-					tryMethodStatement.scope = this.method.scope;
+					};
+					TryStatement tryMethodStatement = generateTryCatchBlock(body, LAMBDA_PARAMETER2_NAME, javaLangRuntimeException(), catchBlockStatements);
 					statementsForOuterBlock.add(tryMethodStatement);
 					
 					Block outerBlock = new Block(1);
@@ -375,7 +383,8 @@ public class FormalSpecification {
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
-					MessageSend loggerMessage = generateSevereLoggerMessage(thrownExceptionNotformal);
+					TryStatement loggerMessage = generateSevereLoggerMessageIfPossible(thrownExceptionNotformal);
+					blockDeclarationsCount += 2;
 					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						if (this.mayThrowExceptionTypeNames[i] == null) {
@@ -426,9 +435,10 @@ public class FormalSpecification {
 								OperatorIds.NOT_EQUAL);
 						IfStatement exceptionNotNullIfStatement = new IfStatement(
 								exceptionNotNullExpression,
-								generateSevereLoggerMessage(throwsAssertionMessage),
+								generateSevereLoggerMessageIfPossible(throwsAssertionMessage),
 								e.sourceStart,
 								e.sourceEnd);
+						blockDeclarationsCount += 2;
 
 						Block instanceOfThenBlock = new Block(0);
 						instanceOfThenBlock.statements = new Statement[] {
@@ -480,9 +490,10 @@ public class FormalSpecification {
 							javaLangRuntimeException());
 					Block thenBlock = new Block(0);
 					thenBlock.statements = new Statement[]{
-							generateSevereLoggerMessage(thrownExceptionNotformal),
+							generateSevereLoggerMessageIfPossible(thrownExceptionNotformal),
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
 					postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
+					blockDeclarationsCount += 2;
 				}
 				
 				LocalDeclaration resultDeclaration = null;
@@ -925,18 +936,82 @@ public class FormalSpecification {
 		return mutatesThisSourceLocation();
 	}
 	
-	private MessageSend generateSevereLoggerMessage(char[] msg) {
-		MessageSend createLogger = new MessageSend();
-		createLogger.receiver = javaUtilLoggingLogger();
-		createLogger.selector = "getLogger".toCharArray(); //$NON-NLS-1$
-		createLogger.arguments = new Expression[] {new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+	private TryStatement generateSevereLoggerMessageIfPossible(char[] msg) {
+		//blockDeclarationsCount += 2;
 		
-		MessageSend generateLoggerMessage = new MessageSend();
-		generateLoggerMessage.receiver = createLogger;
-		generateLoggerMessage.selector = "severe".toCharArray(); //$NON-NLS-1$
-		generateLoggerMessage.arguments = new Expression[] {new StringLiteral(msg, this.method.sourceStart, this.method.sourceEnd, 0)};
-		return generateLoggerMessage;
+		
+		//Method $getLogger = Class.forName("java.util.logging.logger").getMethod("getLogger", String.class);
+		MessageSend loggerClass = new MessageSend();
+		loggerClass.receiver = javaLangClassNameReference();
+		loggerClass.selector = "forName".toCharArray(); //$NON-NLS-1$
+		loggerClass.arguments = new Expression[] {new StringLiteral("java.util.logging.Logger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+		
+		MessageSend getLoggerMethod = new MessageSend();
+		getLoggerMethod.receiver = loggerClass;
+		getLoggerMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
+		getLoggerMethod.arguments = new Expression[] {new StringLiteral("getLogger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
+		
+		LocalDeclaration getLoggerMethodVariableDeclaration = new LocalDeclaration(GETLOGGER_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
+		getLoggerMethodVariableDeclaration.type = javaLangReflectMethod();
+		getLoggerMethodVariableDeclaration.initialization = getLoggerMethod;
+		
+		
+		//Method $severe =  Class.forName("java.util.logging.Logger").getMethod("severe", String.class); //$NON-NLS-1$ //$NON-NLS-2$
+		MessageSend severeMethod = new MessageSend();
+		severeMethod.receiver = loggerClass;
+		severeMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
+		severeMethod.arguments = new Expression[] {new StringLiteral("severe".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
+		
+		LocalDeclaration severeMethodVariableDeclaration = new LocalDeclaration(SEVERE_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
+		severeMethodVariableDeclaration.type = javaLangReflectMethod();
+		severeMethodVariableDeclaration.initialization = severeMethod;
 
+		
+		//$severe.invoke($getLogger.invoke(Class.forName("java.util.logging.Logger"), "fsc4j"), "hello world"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+			//$getLogger.invoke(Class.forName("java.util.logging.Logger"), "fsc4j")
+		MessageSend loggerClassArgument = new MessageSend();
+		loggerClassArgument.receiver = javaLangClassNameReference();
+		loggerClassArgument.selector = "forName".toCharArray(); //$NON-NLS-1$
+		loggerClassArgument.arguments = new Expression[] {new StringLiteral("java.util.logging.Logger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+		
+		MessageSend invokegetLoggerMethod = new MessageSend();
+		invokegetLoggerMethod.receiver = new SingleNameReference(GETLOGGER_METHOD_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
+		invokegetLoggerMethod.selector = "invoke".toCharArray(); //$NON-NLS-1$
+		invokegetLoggerMethod.arguments = new Expression[] {loggerClassArgument, new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+		
+		MessageSend invokesevereMethod = new MessageSend();
+		invokesevereMethod.receiver = new SingleNameReference(SEVERE_METHOD_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
+		invokesevereMethod.selector = "invoke".toCharArray(); //$NON-NLS-1$
+		invokesevereMethod.arguments = new Expression[] {invokegetLoggerMethod, new StringLiteral(msg, this.method.sourceStart, this.method.sourceEnd, 0)};
+
+		
+		Block tryBlock = new Block(0);
+		tryBlock.statements = new Statement[] {
+				getLoggerMethodVariableDeclaration,
+				severeMethodVariableDeclaration,
+				invokesevereMethod
+		};
+		
+		return generateTryCatchBlock(tryBlock, "$throw".toCharArray(), javaLangException(), null); //$NON-NLS-1$
+	}
+	
+	private TryStatement generateTryCatchBlock(Block tryBody, char[] catchExceptionArgumentName, QualifiedTypeReference catchExceptionType, Statement[] catchBlockStatements) {
+		TryStatement tryMethodStatement = new TryStatement();
+		tryMethodStatement.tryBlock = tryBody;
+		Argument catchExceptionArgument = new Argument(catchExceptionArgumentName, 0, catchExceptionType, 0);
+		catchExceptionArgument.sourceStart = this.method.sourceStart;
+		catchExceptionArgument.sourceEnd = this.method.sourceEnd;
+		tryMethodStatement.catchArguments = new Argument[] {catchExceptionArgument};
+
+		Block catchMethodExceptionBlock = new Block(0);
+		catchMethodExceptionBlock.sourceStart = this.method.sourceStart;
+		catchMethodExceptionBlock.sourceEnd = this.method.sourceEnd;
+		catchMethodExceptionBlock.statements = catchBlockStatements;
+		catchMethodExceptionBlock.scope = this.method.scope; 
+		tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};
+		tryMethodStatement.scope = this.method.scope;
+		
+		return tryMethodStatement;
 	}
 	
 	private ASTVisitor generateOldExpressionASTVisitor(HashMap<String, OldExpression.DistinctExpression> oldExpressions, ArrayList<Statement> statementsForBlock) {
