@@ -347,7 +347,7 @@ public class FormalSpecification {
 					ASTVisitor astVisitor = this.generateOldExpressionASTVisitor(oldExpressions, statementsForBlock);
 					this.postconditions[i].traverse(astVisitor, this.method.scope);
 				}
-				blockDeclarationsCount += 2 * oldExpressions.size();
+				//blockDeclarationsCount += 2 * oldExpressions.size();
 				
 				ArrayList<Statement> postconditionBlockStatements = new ArrayList<>();
 				int postconditionBlockDeclarationsCount = 0;
@@ -391,7 +391,7 @@ public class FormalSpecification {
 						ASTVisitor astVisitor = this.generateOldExpressionASTVisitor(oldExpressions, statementsForBlock);
 						this.mayThrowConditions[i].traverse(astVisitor, this.method.scope);
 					}
-					blockDeclarationsCount += 2 * oldExpressions.size();
+					//blockDeclarationsCount += 2 * oldExpressions.size();
 					
 					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
@@ -424,6 +424,18 @@ public class FormalSpecification {
 					
 					postconditionBlockStatements.add(aThrowClauseSatisfiedAndNotThrownVariableDeclaration);
 					blockDeclarationsCount += 1;
+					
+					for (int i = 0 ; i < this.throwsConditions.length ; i++) {
+						if (this.throwsExceptionTypeNames[i] == null) {
+							continue;
+						}
+						Expression e = this.throwsConditions[i];
+						
+						this.throwsConditions[i] = new OldExpression(e.sourceStart, e, e.sourceEnd, this.method.compilationResult.compilationUnit.getContents());
+						ASTVisitor astVisitor = this.generateOldExpressionASTVisitor(oldExpressions, statementsForBlock);
+						this.throwsConditions[i].traverse(astVisitor, this.method.scope);
+					}
+					//blockDeclarationsCount += 2 * oldExpressions.size();
 
 					for (int i = 0; i < this.throwsConditions.length; i++) {
 						Expression e = this.throwsConditions[i];
@@ -562,6 +574,7 @@ public class FormalSpecification {
 				if (!(this.method instanceof ConstructorDeclaration))
 					this.statementsForMethodBody.add(preconditionLambdaCall);
 			}
+			blockDeclarationsCount += 2 * oldExpressions.size();
 			this.block = new Block(blockDeclarationsCount);
 			this.block.statements = new Statement[statementsForBlock.size()];
 			this.block.sourceStart = this.preconditions != null ? this.preconditions[0].sourceStart : this.postconditions != null ? this.postconditions[0].sourceStart : this.method.bodyStart;
