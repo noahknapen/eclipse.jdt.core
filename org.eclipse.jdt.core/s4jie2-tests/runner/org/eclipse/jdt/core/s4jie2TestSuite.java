@@ -756,15 +756,16 @@ public class s4jie2TestSuite {
 	    		+ "----------\n"
 	    		+ "4. ERROR in SOURCE_FILE_FULL_PATH (at line 15)\n"
 	    		+ "	*    | 5000 <= y\n"
+	    		+ "	       ^^^^^^^^^\n"
+	    		+ "Type mismatch: cannot convert from Object to boolean\n"
+	    		+ "----------\n"
+	    		+ "5. ERROR in SOURCE_FILE_FULL_PATH (at line 15)\n"
+	    		+ "	*    | 5000 <= y\n"
 	    		+ "	               ^\n"
 	    		+ "y cannot be resolved to a variable\n"
 	    		+ "----------\n"
-	    		+ "5. ERROR in SOURCE_FILE_FULL_PATH (at line 16)\n"
-	    		+ "	* @may_throw IllegalArgumentException | 5000 <= z \n"
-	    		+ "	                                                ^\n"
-	    		+ "The field Foo.z is not visible\n"
-	    		+ "----------\n"
-	    		+ "5 problems (5 errors)\n");
+	    		+ "5 problems (5 errors)\n"
+	    		+ "");
 	    testPartOfStringCompileAndRun(true, "throws_may_throw_success", true,
 	    		"Caught the IAE\n" +
 	    		"Caught the IAE\n",
