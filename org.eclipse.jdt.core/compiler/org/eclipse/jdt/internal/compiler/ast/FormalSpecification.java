@@ -63,16 +63,9 @@ public class FormalSpecification {
 		return new QualifiedNameReference(tokens, positions, 0, 0);
 	}
 	
-	private static IntLiteral createIntLiteral(int value, int sourceStart, int sourceEnd) {
-		char[] literalChars = String.valueOf(value).toCharArray();
-		return new IntLiteral(literalChars, literalChars, sourceStart, sourceEnd);
-	}
-	
 	private static QualifiedTypeReference javaLangObject() { return getTypeReference("java.lang.Object"); } //$NON-NLS-1$
 	private static QualifiedNameReference javaLangClassNameReference() { return getNameReference("java.lang.Class"); } //$NON-NLS-1$
-	private static QualifiedTypeReference javaLangClassTypeReference() { return getTypeReference("java.lang.Class"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangString() { return getTypeReference("java.lang.String"); } //$NON-NLS-1$
-	private static QualifiedTypeReference javaLangReflectConstructor() { return getTypeReference("java.lang.reflect.Constructor"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangReflectMethod() { return getTypeReference("java.lang.reflect.Method"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangThrowable() { return getTypeReference("java.lang.Throwable"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaLangRuntimeException() { return getTypeReference("java.lang.RuntimeException"); } //$NON-NLS-1$
@@ -82,7 +75,6 @@ public class FormalSpecification {
 	private static QualifiedTypeReference javaUtilFunctionConsumer() { return getTypeReference("java.util.function.Consumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionBiConsumer() { return getTypeReference("java.util.function.BiConsumer"); } //$NON-NLS-1$
 	private static QualifiedTypeReference javaUtilFunctionSupplier() { return getTypeReference("java.util.function.Supplier"); } //$NON-NLS-1$
-	private static QualifiedTypeReference javaUtilLoggingLogger() {return getTypeReference("java.util.logging.Logger");} //$NON-NLS-1$
 
 	private static TypeReference getBoxedType(TypeBinding binding, TypeReference reference) {
 		switch (binding.id) {
@@ -123,18 +115,6 @@ public class FormalSpecification {
 			case TypeIds.T_void: return getJavaUtilConsumerOf(javaLangRuntimeException());
 			default: return getJavaUtilBiConsumerOf(getBoxedType(returnTypeBinding, returnType), javaLangRuntimeException());
 		}
-	}
-	
-	private static QualifiedTypeReference getJavaLangClassOf(TypeReference typeArgument) {
-		TypeReference[][] typeArguments = new TypeReference[][] { null, null, null, {typeArgument}};
-		QualifiedTypeReference javaLangClass = javaLangClassTypeReference();
-		return new ParameterizedQualifiedTypeReference(javaLangClass.tokens, typeArguments, 0, javaLangClass.sourcePositions);
-	}
-	
-	private static QualifiedTypeReference getJavaLangReflectConstructorOf(TypeReference typeArgument) {
-		TypeReference[][] typeArguments = new TypeReference[][] { null, null, null, {typeArgument}};
-		QualifiedTypeReference javaLangReflectConstructor = javaLangReflectConstructor();
-		return new ParameterizedQualifiedTypeReference(javaLangReflectConstructor.tokens, typeArguments, 0, javaLangReflectConstructor.sourcePositions);
 	}
 
 	public final AbstractMethodDeclaration method;
