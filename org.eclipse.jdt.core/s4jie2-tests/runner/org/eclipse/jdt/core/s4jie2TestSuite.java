@@ -691,7 +691,7 @@ public class s4jie2TestSuite {
 				"Exception in thread \"main\" java.lang.AssertionError: Postcondition does not hold\n" +
 				"	at Main.main$post(multiline_lambdas.java:4)\n" +
 				"	at Main.main(multiline_lambdas.java:8)\n");
-		testCompile("old_resolvedtype", true, "", "");
+		testCompile("old_resolvedType", true, "", "");
 		testCompile("bad_return_type", false, "",
 				"----------\n" +
 				"1. ERROR in SOURCE_FILE_FULL_PATH (at line 6)\n" +

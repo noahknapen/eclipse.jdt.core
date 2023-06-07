@@ -352,6 +352,16 @@ public class FormalSpecification {
 				ArrayList<Statement> postconditionBlockStatements = new ArrayList<>();
 				int postconditionBlockDeclarationsCount = 0;
 				
+				LocalDeclaration getLoggerMethodVariableDeclaration = new LocalDeclaration(GETLOGGER_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
+				getLoggerMethodVariableDeclaration.type = javaLangReflectMethod();
+				
+				LocalDeclaration severeMethodVariableDeclaration = new LocalDeclaration(SEVERE_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
+				severeMethodVariableDeclaration.type = javaLangReflectMethod();
+				
+				postconditionBlockStatements.add(getLoggerMethodVariableDeclaration);
+				postconditionBlockStatements.add(severeMethodVariableDeclaration);
+				blockDeclarationsCount += 2;
+				
 				if (this.throwsConditions != null || this.mayThrowConditions != null) {
 					Block body = new Block(this.method.explicitDeclarations);
 					body.statements = this.method.statements;
@@ -368,17 +378,7 @@ public class FormalSpecification {
 					outerBlock.statements = statementsForOuterBlock.toArray(new Statement[statementsForOuterBlock.size()]);
 					
 					this.method.statements = new Statement[] {outerBlock};
-					this.method.explicitDeclarations = 0;
-					
-					LocalDeclaration getLoggerMethodVariableDeclaration = new LocalDeclaration(GETLOGGER_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
-					getLoggerMethodVariableDeclaration.type = javaLangReflectMethod();
-					
-					LocalDeclaration severeMethodVariableDeclaration = new LocalDeclaration(SEVERE_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
-					severeMethodVariableDeclaration.type = javaLangReflectMethod();
-					
-					postconditionBlockStatements.add(getLoggerMethodVariableDeclaration);
-					postconditionBlockStatements.add(severeMethodVariableDeclaration);
-					blockDeclarationsCount += 2;
+					this.method.explicitDeclarations = 0;	
 				}
 				if (this.mayThrowConditions != null) {
 					for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
