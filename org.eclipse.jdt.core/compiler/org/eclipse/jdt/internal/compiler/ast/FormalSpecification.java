@@ -369,6 +369,16 @@ public class FormalSpecification {
 					
 					this.method.statements = new Statement[] {outerBlock};
 					this.method.explicitDeclarations = 0;
+					
+					LocalDeclaration getLoggerMethodVariableDeclaration = new LocalDeclaration(GETLOGGER_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
+					getLoggerMethodVariableDeclaration.type = javaLangReflectMethod();
+					
+					LocalDeclaration severeMethodVariableDeclaration = new LocalDeclaration(SEVERE_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
+					severeMethodVariableDeclaration.type = javaLangReflectMethod();
+					
+					postconditionBlockStatements.add(getLoggerMethodVariableDeclaration);
+					postconditionBlockStatements.add(severeMethodVariableDeclaration);
+					blockDeclarationsCount += 2;
 				}
 				if (this.mayThrowConditions != null) {
 					for (int i = 0 ; i < this.mayThrowConditions.length ; i++) {
@@ -384,7 +394,6 @@ public class FormalSpecification {
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
 					TryStatement loggerMessage = generateSevereLoggerMessageIfPossible(thrownExceptionNotformal);
-					blockDeclarationsCount += 2;
 					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						if (this.mayThrowExceptionTypeNames[i] == null) {
@@ -438,7 +447,6 @@ public class FormalSpecification {
 								generateSevereLoggerMessageIfPossible(throwsAssertionMessage),
 								e.sourceStart,
 								e.sourceEnd);
-						blockDeclarationsCount += 2;
 
 						Block instanceOfThenBlock = new Block(0);
 						instanceOfThenBlock.statements = new Statement[] {
@@ -493,7 +501,6 @@ public class FormalSpecification {
 							generateSevereLoggerMessageIfPossible(thrownExceptionNotformal),
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
 					postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
-					blockDeclarationsCount += 2;
 				}
 				
 				LocalDeclaration resultDeclaration = null;
@@ -951,9 +958,9 @@ public class FormalSpecification {
 		getLoggerMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
 		getLoggerMethod.arguments = new Expression[] {new StringLiteral("getLogger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
 		
-		LocalDeclaration getLoggerMethodVariableDeclaration = new LocalDeclaration(GETLOGGER_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
-		getLoggerMethodVariableDeclaration.type = javaLangReflectMethod();
-		getLoggerMethodVariableDeclaration.initialization = getLoggerMethod;
+		
+
+		Assignment getLoggerMethodVariableAssigment = new Assignment(new SingleNameReference(GETLOGGER_METHOD_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd), getLoggerMethod, this.method.sourceEnd);
 		
 		
 		//Method $severe =  Class.forName("java.util.logging.Logger").getMethod("severe", String.class); //$NON-NLS-1$ //$NON-NLS-2$
@@ -962,9 +969,8 @@ public class FormalSpecification {
 		severeMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
 		severeMethod.arguments = new Expression[] {new StringLiteral("severe".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
 		
-		LocalDeclaration severeMethodVariableDeclaration = new LocalDeclaration(SEVERE_METHOD_VARIABLE_NAME, this.method.sourceStart, this.method.sourceEnd);
-		severeMethodVariableDeclaration.type = javaLangReflectMethod();
-		severeMethodVariableDeclaration.initialization = severeMethod;
+		
+		Assignment severeMethodVariableAssigment = new Assignment(new SingleNameReference(SEVERE_METHOD_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd), severeMethod, this.method.sourceEnd);
 
 		
 		//$severe.invoke($getLogger.invoke(Class.forName("java.util.logging.Logger"), "fsc4j"), "hello world"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
@@ -987,8 +993,8 @@ public class FormalSpecification {
 		
 		Block tryBlock = new Block(0);
 		tryBlock.statements = new Statement[] {
-				getLoggerMethodVariableDeclaration,
-				severeMethodVariableDeclaration,
+				getLoggerMethodVariableAssigment,
+				severeMethodVariableAssigment,
 				invokesevereMethod
 		};
 		
