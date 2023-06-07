@@ -393,12 +393,12 @@ public class FormalSpecification {
 					}
 					blockDeclarationsCount += 2 * oldExpressions.size();
 					
-					TryStatement loggerMessage = generateSevereLoggerMessageIfPossible(thrownExceptionNotformal);
 					Statement statement = new EmptyStatement(0,0);
 					for (int i = 0; i < this.mayThrowConditions.length; i++) {
 						if (this.mayThrowExceptionTypeNames[i] == null) {
 							continue;
 						}
+						TryStatement loggerMessage = generateSevereLoggerMessageIfPossible(thrownExceptionNotformal);
 						Expression e = this.mayThrowConditions[i];
 						Expression condition = new InstanceOfExpression(
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
@@ -958,8 +958,6 @@ public class FormalSpecification {
 		getLoggerMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
 		getLoggerMethod.arguments = new Expression[] {new StringLiteral("getLogger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
 		
-		
-
 		Assignment getLoggerMethodVariableAssigment = new Assignment(new SingleNameReference(GETLOGGER_METHOD_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd), getLoggerMethod, this.method.sourceEnd);
 		
 		
@@ -968,7 +966,6 @@ public class FormalSpecification {
 		severeMethod.receiver = loggerClass;
 		severeMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
 		severeMethod.arguments = new Expression[] {new StringLiteral("severe".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
-		
 		
 		Assignment severeMethodVariableAssigment = new Assignment(new SingleNameReference(SEVERE_METHOD_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd), severeMethod, this.method.sourceEnd);
 
