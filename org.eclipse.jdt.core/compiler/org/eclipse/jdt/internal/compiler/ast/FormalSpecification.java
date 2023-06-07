@@ -371,7 +371,7 @@ public class FormalSpecification {
 							this.postconditionMethodCall,
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.sourceStart << 32) + this.method.sourceStart), this.method.sourceStart, this.method.sourceEnd)
 					};
-					TryStatement tryMethodStatement = generateTryCatchBlock(body, LAMBDA_PARAMETER2_NAME, javaLangRuntimeException(), catchBlockStatements);
+					TryStatement tryMethodStatement = generateTryCatchBlock(body, LAMBDA_PARAMETER2_NAME, javaLangRuntimeException(), catchBlockStatements, this.method.sourceStart, this.method.sourceEnd);
 					statementsForOuterBlock.add(tryMethodStatement);
 					
 					Block outerBlock = new Block(1);
@@ -398,8 +398,8 @@ public class FormalSpecification {
 						if (this.mayThrowExceptionTypeNames[i] == null) {
 							continue;
 						}
-						TryStatement loggerMessage = generateSevereLoggerMessageIfPossible(thrownExceptionNotformal);
 						Expression e = this.mayThrowConditions[i];
+						TryStatement loggerMessage = generateSevereLoggerMessageIfPossible(thrownExceptionNotformal, e.sourceStart, e.sourceEnd);
 						Expression condition = new InstanceOfExpression(
 								new SingleNameReference(LAMBDA_PARAMETER2_NAME, (this.method.bodyStart << 32) + this.method.bodyStart),
 								this.mayThrowExceptionTypeNames[i]
@@ -444,7 +444,7 @@ public class FormalSpecification {
 								OperatorIds.NOT_EQUAL);
 						IfStatement exceptionNotNullIfStatement = new IfStatement(
 								exceptionNotNullExpression,
-								generateSevereLoggerMessageIfPossible(throwsAssertionMessage),
+								generateSevereLoggerMessageIfPossible(throwsAssertionMessage, e.sourceStart, e.sourceEnd),
 								e.sourceStart,
 								e.sourceEnd);
 
@@ -498,7 +498,7 @@ public class FormalSpecification {
 							javaLangRuntimeException());
 					Block thenBlock = new Block(0);
 					thenBlock.statements = new Statement[]{
-							generateSevereLoggerMessageIfPossible(thrownExceptionNotformal),
+							generateSevereLoggerMessageIfPossible(thrownExceptionNotformal, this.method.sourceStart, this.method.sourceEnd),
 							new ThrowStatement(new SingleNameReference(LAMBDA_PARAMETER2_NAME, 0), this.method.bodyStart, this.method.bodyEnd)};
 					postconditionBlockStatements.add(new IfStatement(condition, thenBlock, this.method.bodyStart, this.method.bodyStart));
 				}
@@ -943,7 +943,7 @@ public class FormalSpecification {
 		return mutatesThisSourceLocation();
 	}
 	
-	private TryStatement generateSevereLoggerMessageIfPossible(char[] msg) {
+	private TryStatement generateSevereLoggerMessageIfPossible(char[] msg, int sourceStart, int sourceEnd) {
 		//blockDeclarationsCount += 2;
 		
 		
@@ -951,23 +951,23 @@ public class FormalSpecification {
 		MessageSend loggerClass = new MessageSend();
 		loggerClass.receiver = javaLangClassNameReference();
 		loggerClass.selector = "forName".toCharArray(); //$NON-NLS-1$
-		loggerClass.arguments = new Expression[] {new StringLiteral("java.util.logging.Logger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+		loggerClass.arguments = new Expression[] {new StringLiteral("java.util.logging.Logger".toCharArray(), sourceStart, sourceEnd, 0)}; //$NON-NLS-1$
 		
 		MessageSend getLoggerMethod = new MessageSend();
 		getLoggerMethod.receiver = loggerClass;
 		getLoggerMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
-		getLoggerMethod.arguments = new Expression[] {new StringLiteral("getLogger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
+		getLoggerMethod.arguments = new Expression[] {new StringLiteral("getLogger".toCharArray(), sourceStart, sourceEnd, 0), new ClassLiteralAccess(sourceEnd, javaLangString())}; //$NON-NLS-1$
 		
-		Assignment getLoggerMethodVariableAssigment = new Assignment(new SingleNameReference(GETLOGGER_METHOD_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd), getLoggerMethod, this.method.sourceEnd);
+		Assignment getLoggerMethodVariableAssigment = new Assignment(new SingleNameReference(GETLOGGER_METHOD_VARIABLE_NAME, (sourceStart << 32) | sourceEnd), getLoggerMethod, sourceEnd);
 		
 		
 		//Method $severe =  Class.forName("java.util.logging.Logger").getMethod("severe", String.class); //$NON-NLS-1$ //$NON-NLS-2$
 		MessageSend severeMethod = new MessageSend();
 		severeMethod.receiver = loggerClass;
 		severeMethod.selector = "getMethod".toCharArray(); //$NON-NLS-1$
-		severeMethod.arguments = new Expression[] {new StringLiteral("severe".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0), new ClassLiteralAccess(this.method.sourceEnd, javaLangString())}; //$NON-NLS-1$
+		severeMethod.arguments = new Expression[] {new StringLiteral("severe".toCharArray(), sourceStart, sourceEnd, 0), new ClassLiteralAccess(sourceEnd, javaLangString())}; //$NON-NLS-1$
 		
-		Assignment severeMethodVariableAssigment = new Assignment(new SingleNameReference(SEVERE_METHOD_VARIABLE_NAME, (this.method.sourceStart << 32) | this.method.sourceEnd), severeMethod, this.method.sourceEnd);
+		Assignment severeMethodVariableAssigment = new Assignment(new SingleNameReference(SEVERE_METHOD_VARIABLE_NAME, (sourceStart << 32) | sourceEnd), severeMethod, sourceEnd);
 
 		
 		//$severe.invoke($getLogger.invoke(Class.forName("java.util.logging.Logger"), "fsc4j"), "hello world"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
@@ -975,17 +975,17 @@ public class FormalSpecification {
 		MessageSend loggerClassArgument = new MessageSend();
 		loggerClassArgument.receiver = javaLangClassNameReference();
 		loggerClassArgument.selector = "forName".toCharArray(); //$NON-NLS-1$
-		loggerClassArgument.arguments = new Expression[] {new StringLiteral("java.util.logging.Logger".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+		loggerClassArgument.arguments = new Expression[] {new StringLiteral("java.util.logging.Logger".toCharArray(), sourceStart, sourceEnd, 0)}; //$NON-NLS-1$
 		
 		MessageSend invokegetLoggerMethod = new MessageSend();
 		invokegetLoggerMethod.receiver = new SingleNameReference(GETLOGGER_METHOD_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
 		invokegetLoggerMethod.selector = "invoke".toCharArray(); //$NON-NLS-1$
-		invokegetLoggerMethod.arguments = new Expression[] {loggerClassArgument, new StringLiteral("fsc4j".toCharArray(), this.method.sourceStart, this.method.sourceEnd, 0)}; //$NON-NLS-1$
+		invokegetLoggerMethod.arguments = new Expression[] {loggerClassArgument, new StringLiteral("fsc4j".toCharArray(), sourceStart, sourceEnd, 0)}; //$NON-NLS-1$
 		
 		MessageSend invokesevereMethod = new MessageSend();
 		invokesevereMethod.receiver = new SingleNameReference(SEVERE_METHOD_VARIABLE_NAME, (this.method.bodyStart<< 32) + this.method.bodyStart);
 		invokesevereMethod.selector = "invoke".toCharArray(); //$NON-NLS-1$
-		invokesevereMethod.arguments = new Expression[] {invokegetLoggerMethod, new StringLiteral(msg, this.method.sourceStart, this.method.sourceEnd, 0)};
+		invokesevereMethod.arguments = new Expression[] {invokegetLoggerMethod, new StringLiteral(msg, sourceStart, sourceEnd, 0)};
 
 		
 		Block tryBlock = new Block(0);
@@ -995,20 +995,20 @@ public class FormalSpecification {
 				invokesevereMethod
 		};
 		
-		return generateTryCatchBlock(tryBlock, "$throw".toCharArray(), javaLangException(), null); //$NON-NLS-1$
+		return generateTryCatchBlock(tryBlock, "$throw".toCharArray(), javaLangException(), null, sourceStart, sourceEnd); //$NON-NLS-1$
 	}
 	
-	private TryStatement generateTryCatchBlock(Block tryBody, char[] catchExceptionArgumentName, QualifiedTypeReference catchExceptionType, Statement[] catchBlockStatements) {
+	private TryStatement generateTryCatchBlock(Block tryBody, char[] catchExceptionArgumentName, QualifiedTypeReference catchExceptionType, Statement[] catchBlockStatements, int sourceStart, int sourceEnd) {
 		TryStatement tryMethodStatement = new TryStatement();
 		tryMethodStatement.tryBlock = tryBody;
 		Argument catchExceptionArgument = new Argument(catchExceptionArgumentName, 0, catchExceptionType, 0);
-		catchExceptionArgument.sourceStart = this.method.sourceStart;
-		catchExceptionArgument.sourceEnd = this.method.sourceEnd;
+		catchExceptionArgument.sourceStart = sourceStart;
+		catchExceptionArgument.sourceEnd = sourceEnd;
 		tryMethodStatement.catchArguments = new Argument[] {catchExceptionArgument};
 
 		Block catchMethodExceptionBlock = new Block(0);
-		catchMethodExceptionBlock.sourceStart = this.method.sourceStart;
-		catchMethodExceptionBlock.sourceEnd = this.method.sourceEnd;
+		catchMethodExceptionBlock.sourceStart = sourceStart;
+		catchMethodExceptionBlock.sourceEnd = sourceEnd;
 		catchMethodExceptionBlock.statements = catchBlockStatements;
 		catchMethodExceptionBlock.scope = this.method.scope; 
 		tryMethodStatement.catchBlocks = new Block[] {catchMethodExceptionBlock};

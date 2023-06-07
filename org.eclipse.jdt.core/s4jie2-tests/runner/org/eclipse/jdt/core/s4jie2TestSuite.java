@@ -765,15 +765,16 @@ public class s4jie2TestSuite {
 	    		+ "The field Foo.z is not visible\n"
 	    		+ "----------\n"
 	    		+ "5 problems (5 errors)\n");
-	    testCompileAndRun(true, "throws_may_throw_success", true,
+	    testPartOfStringCompileAndRun(true, "throws_may_throw_success", true,
 	    		"Caught the IAE\n" +
 	    		"Caught the IAE\n",
-	    		"java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
-	    		+ "	at Main.foo$post(throws_may_throw_success.java:4)\n"
+	    		"SEVERE: The thrown exception was not specified in the formal specification\n"
+	    		+ "java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
+	    		+ "	at Main.foo$post(throws_may_throw_success.java:8)\n"
 	    		+ "	at Main.foo(throws_may_throw_success.java:13)\n"
 	    		+ "	at Main.main(throws_may_throw_success.java:33)\n"
 	    		+ "java.lang.AssertionError: @throws condition holds but specified exception type not thrown\n"
-	    		+ "	at Main.foo$post(throws_may_throw_success.java:5)\n"
+	    		+ "	at Main.foo$post(throws_may_throw_success.java:8)\n"
 	    		+ "	at Main.foo(throws_may_throw_success.java:13)\n"
 	    		+ "	at Main.main(throws_may_throw_success.java:42)\n");
 	    testCompile("invariants_syntax_error", false, "",
