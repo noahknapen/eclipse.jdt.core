@@ -142,6 +142,7 @@ public class NonleafShapeGroup extends ShapeGroup {
 	 * @post | getOriginalExtent().getRight() == Arrays.stream(subgroups).mapToInt(g -> g.getExtent().getRight()).max().getAsInt()
 	 * @post | getOriginalExtent().getBottom() == Arrays.stream(subgroups).mapToInt(g -> g.getExtent().getBottom()).max().getAsInt()
 	 * @post | getExtent().equals(getOriginalExtent())
+	 * @SuppressWarnings("unused")
 	 */
 	public NonleafShapeGroup(ShapeGroup[] subgroups) {
 		if (subgroups == null)
